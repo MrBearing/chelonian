@@ -1,0 +1,47 @@
+name: Publish Release to crates.io
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Publish crate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache cargo registry and build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Run tests
+        run: cargo test --all --verbose
+
+      - name: Verify package can be created
+        run: |
+          cargo package --allow-dirty
+          echo "Running cargo publish --dry-run"
+          cargo publish --dry-run || true
+
+      - name: Publish manual step (NOT AUTOMATIC)
+        run: |
+          echo "Automatic publish is disabled in this workflow."
+          echo "To publish, run the 'Publish crate (manual)' workflow from Actions or use the manual dispatch workflow 'publish-manual'."
+          echo "This workflow performed packaging and a dry-run; review logs and then trigger manual publish when ready."

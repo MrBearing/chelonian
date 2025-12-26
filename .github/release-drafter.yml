@@ -1,0 +1,23 @@
+name: Keep a changelog
+tag-template: 'v$NEXT_PATCH_VERSION'
+categories:
+  - title: "Added"
+    label: "feature"
+  - title: "Changed"
+    label: "enhancement"
+  - title: "Fixed"
+    label: "bug"
+  - title: "Documentation"
+    label: "docs"
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+template: |
+  ## Changes
+
+  $CHANGES
+
+  **Full changelog**: https://github.com/${{ repository }}/compare/$BASE...$NEXT
+
+/*
+This file configures Release Drafter (https://github.com/release-drafter/release-drafter)
+It updates a draft release with merged PRs grouped by labels. Customize categories and templates as needed.
+*/
