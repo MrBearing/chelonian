@@ -1,7 +1,6 @@
 # Chelonian
 
-Chelonian is a CLI static analysis tool for ROS workspaces to help estimate effort for ROS1 → ROS2 migrations.
-
+Chelonian is a CLI static analysis tool for ROS workspaces
 Usage
 -----
 
