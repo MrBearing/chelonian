@@ -83,6 +83,8 @@ Notes:
 
 ## Compatibility
 
-Existing rules that previously used a single warning level should be reviewed and migrated to the appropriate `severity` value. The included template rules in `templates/rules/` are discovery-only (`info`).
+Existing rules that previously used a single warning level should be reviewed and migrated to the appropriate `severity` value.
+
+The built-in rule sets in `builtin-rules/ros1/` and `builtin-rules/ros2/` are intended to be discovery-first (often `info`). Select them with `-p/--platform`.
 
 If you have questions about a rule conversion, open an issue or PR with the proposed severity mapping.
