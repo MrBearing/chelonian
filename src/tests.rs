@@ -61,8 +61,8 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
 "###;
         write(rules_dir.join("custom.toml"), rule_toml).expect("write toml");
 
-        // load rules (pass rules dir)
-        let rules = load_rules_from_path(Some(rules_dir.clone()), true).expect("load rules");
+        // load rules (pass rules dir and platform=ros1)
+        let rules = load_rules_from_path(Some(rules_dir.clone()), Some("ros1".to_string()), true).expect("load rules");
         assert!(rules.iter().any(|r| r.id == "ros1-header-ros"));
         assert!(rules.iter().any(|r| r.id == "custom-include-ros"));
 
@@ -70,15 +70,15 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
         let scan = scan_workspace(base.to_str().unwrap());
         let report = analyze(&scan, &rules);
 
-        // Expect at least two violations: built-in header and dependency (or custom)
-        assert!(report.violations.len() >= 1, "expected some violations");
+        // Expect at least two findings: built-in header and dependency (or custom)
+        assert!(report.findings.len() >= 1, "expected some findings");
 
-        // check that ros include violation exists
-        let has_ros_include = report.violations.iter().any(|v| v.rule_id == "ros1-header-ros" || v.rule_id == "custom-include-ros");
+        // check that ros include finding exists
+        let has_ros_include = report.findings.iter().any(|v| v.rule_id == "ros1-header-ros" || v.rule_id == "custom-include-ros");
         assert!(has_ros_include, "expected ros include rule to trigger");
 
-        // check that roscpp dependency violation exists
-        let has_roscpp = report.violations.iter().any(|v| v.rule_id == "ros1-dep-roscpp");
+        // check that roscpp dependency finding exists
+        let has_roscpp = report.findings.iter().any(|v| v.rule_id == "ros1-dep-roscpp");
         assert!(has_roscpp, "expected roscpp dependency rule to trigger");
     }
 }

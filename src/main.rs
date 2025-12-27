@@ -4,18 +4,14 @@ mod scanner;
 mod analyzer;
 mod output;
 mod plugins;
-mod commands;
 
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[command(subcommand)]
-    command: Option<Commands>,
-
-    /// Workspace path to analyze (omit when using subcommands such as init)
+    /// Workspace path to analyze
     workspace_path: Option<PathBuf>,
 
     /// Output format [text|json]
@@ -30,6 +26,10 @@ struct Args {
     #[arg(short = 'r', long)]
     rules: Option<PathBuf>,
 
+    /// Platform [ros1|ros2] (selects builtin rules)
+    #[arg(short = 'P', long, value_parser = ["ros1", "ros2"])]
+    platform: Option<String>,
+
     /// Disable builtin rules
     #[arg(long)]
     no_builtin: bool,
@@ -43,46 +43,8 @@ struct Args {
     verbose: u8,
 }
 
-#[derive(Subcommand, Debug)]
-enum Commands {
-    /// Initialize chelonian files in a workspace
-    Init {
-        /// Path to initialize (default: current directory)
-        #[arg(short, long)]
-        path: Option<PathBuf>,
-
-        /// Force overwrite existing files
-        #[arg(short, long)]
-        force: bool,
-
-        /// Do not copy default rules
-        #[arg(long)]
-        no_rules: bool,
-        /// Platform to initialize rules for [ros1|ros2]
-        #[arg(short = 'p', long, value_parser = ["ros1", "ros2"])]
-        platform: Option<String>,
-        /// Interactive selection if platform not provided
-        #[arg(long)]
-        interactive: bool,
-    },
-}
-
 fn main() {
     let args = Args::parse();
-
-    // handle subcommands
-    if let Some(cmd) = args.command {
-        match cmd {
-            Commands::Init { path, force, no_rules, platform, interactive } => {
-                let p = path.unwrap_or_else(|| std::env::current_dir().expect("cwd"));
-                if let Err(e) = commands::init::run_init(&p, force, no_rules, platform, interactive) {
-                    eprintln!("init failed: {}", e);
-                    std::process::exit(1);
-                }
-                return;
-            }
-        }
-    }
 
     let ws = match args.workspace_path {
         Some(p) => p.to_string_lossy().to_string(),
@@ -97,7 +59,7 @@ fn main() {
     }
 
     // load rules
-    let rules = match plugins::load_rules_from_path(args.rules.clone(), !args.no_builtin) {
+    let rules = match plugins::load_rules_from_path(args.rules.clone(), args.platform.clone(), !args.no_builtin) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("warning: failed to load rules: {}", e);

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Violation {
+pub struct Finding {
     pub rule_id: String,
     pub severity: String,
     pub file: String,
@@ -15,5 +15,5 @@ pub struct Violation {
 pub struct AnalysisReport {
     pub summary: std::collections::HashMap<String, usize>,
     pub packages: Vec<crate::models::package::Package>,
-    pub violations: Vec<Violation>,
+    pub findings: Vec<Finding>,
 }

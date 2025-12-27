@@ -20,10 +20,30 @@ Analyze a workspace (text output):
 chel /path/to/ros/workspace
 ```
 
+Select a platform (load platform-specific builtin rules):
+
+```bash
+# analyze with ROS1 builtin rules
+chel --platform ros1 /path/to/ros/workspace
+
+# analyze with ROS2 builtin rules
+chel --platform ros2 /path/to/ros/workspace
+```
+
 JSON output:
 
 ```bash
 chel -f json /path/to/ros/workspace
+```
+
+Custom rules:
+
+```bash
+# add custom rules on top of builtin rules
+chel --platform ros1 --rules /path/to/custom/rules /path/to/ros/workspace
+
+# load only custom rules (disable builtin)
+chel --rules /path/to/custom/rules --no-builtin /path/to/ros/workspace
 ```
 
 List available rules:
@@ -35,27 +55,12 @@ chel --list-rules /path/to/ros/workspace
 Rules
 -----
 
-Rules can be provided as TOML files via `--rules <path>` (file or directory). The tool also loads rules from `~/.config/chelonian/rules/*.toml` and includes several built-in migration rules.
+Rules are provided as TOML files. The tool loads rules in this order:
+1. **Builtin rules** (from `builtin-rules/<platform>/`) — selected via `--platform ros1|ros2`
+2. **Custom rules** (via `--rules <path>`) — added on top of builtin rules
+3. **Config directory** (from `~/.config/chelonian/rules/*.toml`) — added on top
 
 See `RULES.md` for the rule file format and the meaning of the `severity` field (info/warning/error).
-
-Init
-----
-
-Create a workspace-local `.chelonian/` directory with example rule templates and output folders:
-
-```bash
-# create .chelonian/ in the current workspace and copy bundled rules
-chel init
-
-# force overwrite without prompt (non-interactive / CI)
-chel init --force
-
-# skip copying example rules
-chel init --no-rules
-```
-
-After `init`, rule files are placed under `.chelonian/rules/` and analysis results go to `.chelonian/output/` by default. You can also load rules from a custom location with `--rules /path/to/rules` when running the analyzer.
 
 Development (for contributors)
 ------------------------------
@@ -76,11 +81,5 @@ Project layout
 --------------
 
 - `src/` — main source files (parsers, scanner, analyzer, plugins, output)
-- `Cargo.toml` — dependencies and metadata
-
-Contributing
-------------
-
-Please open issues or PRs with improvements, additional rules, or test cases.
-
-License: MIT
+- `builtin-rules/` — platform-specific builtin rule sets (ros1/, ros2/)
+- `templates/rules/` — sample rules
