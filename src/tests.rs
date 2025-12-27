@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use std::fs::{create_dir_all, write};
-    use std::path::PathBuf;
     use tempfile::tempdir;
 
     use crate::plugins::loader::load_rules_from_path;

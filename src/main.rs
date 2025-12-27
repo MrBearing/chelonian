@@ -4,15 +4,19 @@ mod scanner;
 mod analyzer;
 mod output;
 mod plugins;
+mod commands;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Workspace path to analyze
-    workspace_path: PathBuf,
+    #[command(subcommand)]
+    command: Option<Commands>,
+
+    /// Workspace path to analyze (omit when using subcommands such as init)
+    workspace_path: Option<PathBuf>,
 
     /// Output format [text|json]
     #[arg(short, long, default_value = "text")]
@@ -39,10 +43,55 @@ struct Args {
     verbose: u8,
 }
 
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Initialize chelonian files in a workspace
+    Init {
+        /// Path to initialize (default: current directory)
+        #[arg(short, long)]
+        path: Option<PathBuf>,
+
+        /// Force overwrite existing files
+        #[arg(short, long)]
+        force: bool,
+
+        /// Do not copy default rules
+        #[arg(long)]
+        no_rules: bool,
+        /// Platform to initialize rules for [ros1|ros2]
+        #[arg(short = 'p', long, value_parser = ["ros1", "ros2"])]
+        platform: Option<String>,
+        /// Interactive selection if platform not provided
+        #[arg(long)]
+        interactive: bool,
+    },
+}
+
 fn main() {
     let args = Args::parse();
 
-    let ws = args.workspace_path.to_string_lossy().to_string();
+    // handle subcommands
+    if let Some(cmd) = args.command {
+        match cmd {
+            Commands::Init { path, force, no_rules, platform, interactive } => {
+                let p = path.unwrap_or_else(|| std::env::current_dir().expect("cwd"));
+                if let Err(e) = commands::init::run_init(&p, force, no_rules, platform, interactive) {
+                    eprintln!("init failed: {}", e);
+                    std::process::exit(1);
+                }
+                return;
+            }
+        }
+    }
+
+    let ws = match args.workspace_path {
+        Some(p) => p.to_string_lossy().to_string(),
+        None => {
+            eprintln!("workspace path is required");
+            std::process::exit(2);
+        }
+    };
+
     if args.verbose > 0 {
         eprintln!("Scanning workspace: {}", ws);
     }

@@ -52,25 +52,8 @@ pub fn load_rules_from_path(path_opt: Option<PathBuf>, include_builtin: bool) ->
 }
 
 fn built_in_rules() -> Vec<Rule> {
-    let mut v = Vec::new();
-
-    let make = |id: &str, target: &str, kind: &str, pattern: &str, message: &str, suggestion: &str, effort: f32| {
-        Rule {
-            id: id.to_string(),
-            name: None,
-            description: None,
-            severity: Some("warning".to_string()),
-            category: None,
-            target: Some(target.to_string()),
-            match_rule: crate::plugins::rule::RuleMatch { kind: kind.to_string(), pattern: pattern.to_string(), file_pattern: None },
-            output: crate::plugins::rule::RuleOutput { message: message.to_string(), suggestion: Some(suggestion.to_string()), effort_hours: Some(effort) },
-        }
-    };
-
-    v.push(make("ros1-header-ros", "cpp", "include", "ros/ros.h", "ros/ros.h → rclcpp/rclcpp.hpp", "#include <rclcpp/rclcpp.hpp>", 2.0));
-    v.push(make("ros1-header-nodehandle", "cpp", "include", "ros/node_handle.h", "ros/node_handle.h → rclcpp/node.hpp", "#include <rclcpp/node.hpp>", 1.5));
-    v.push(make("ros1-dep-roscpp", "package_xml", "dependency", "roscpp", "roscpp → rclcpp", "<depend>rclcpp</depend>", 1.0));
-    v.push(make("ros1-dep-rospy", "package_xml", "dependency", "rospy", "rospy → rclpy", "<depend>rclpy</depend>", 0.5));
-
-    v
+    // Per "TOML-only" policy, keep built-in rules minimal and rely on TOML rule files
+    // shipped in `examples/rules/` and copied by `chel init`.
+    // Returning empty vector here makes the runtime rely on TOML inputs only.
+    Vec::new()
 }
