@@ -1,0 +1,81 @@
+# Basic ROS2 discovery-only rules (severity = "info")
+
+[[rule]]
+id = "ros2-cpp-include"
+name = "C++ include: rclcpp or rclcpp.hpp"
+description = "Detect inclusion of ROS2 C++ headers (rclcpp)."
+severity = "info"
+category = "include"
+
+[rule.match]
+type = "regex"
+pattern = "rclcpp(/|\\.h|\\.hpp)"
+
+[rule.output]
+message = "Found ROS2 C++ include (rclcpp) — good candidate for ROS2 analysis."
+suggestion = "Keep track of rclcpp usage for migration and API inspection."
+effort_hours = 0.1
+
+[[rule]]
+id = "ros2-py-import"
+name = "Python import: rclpy"
+description = "Detect imports of ROS2 Python client library `rclpy`."
+severity = "info"
+category = "include"
+
+[rule.match]
+type = "regex"
+pattern = "\\brclpy\\b"
+
+[rule.output]
+message = "Found ROS2 Python import (rclpy)."
+suggestion = "Record rclpy usage to verify node lifecycle and parameter patterns."
+effort_hours = 0.1
+
+[[rule]]
+id = "ros2-ament-cmake"
+name = "CMakeLists: ament_cmake or ament_package"
+description = "Detect CMakeLists that use `ament_cmake` build type indicating ROS2 packages."
+severity = "info"
+category = "build"
+
+[rule.match]
+type = "regex"
+pattern = "ament_cmake|ament_package"
+
+[rule.output]
+message = "Found ament_cmake usage — indicates ROS2/ament package."
+suggestion = "Confirm package.xml uses ament/ament_cmake and check build exports."
+effort_hours = 0.2
+
+[[rule]]
+id = "ros2-package-xml"
+name = "package.xml: ament/format"
+description = "Detect ROS2-style package manifests (format and buildtool_depend)."
+severity = "info"
+category = "manifest"
+
+[rule.match]
+type = "regex"
+pattern = "format=\"3\"|buildtool_depend.*ament_cmake|exec_depend.*rclcpp"
+
+[rule.output]
+message = "Found ROS2-style package.xml markers."
+suggestion = "Check for ament/format=3 and ament-specific dependencies."
+effort_hours = 0.2
+
+[[rule]]
+id = "ros1-include-in-ros2"
+name = "ROS1 includes present (in ROS2 workspace)"
+description = "Detect legacy ROS1 includes (ros/ros.h, rospy) within a ROS2-style workspace."
+severity = "info"
+category = "include"
+
+[rule.match]
+type = "regex"
+pattern = "ros/ros.h|rospy|roscpp"
+
+[rule.output]
+message = "Found ROS1 include in project that otherwise looks like ROS2."
+suggestion = "Verify whether package mixes ROS1 and ROS2 code (ros1_bridge / migration)."
+effort_hours = 0.3

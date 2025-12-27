@@ -40,10 +40,10 @@ output = "./.chelonian/output"
             "ros1".to_string()
         };
 
-        // copy default rules from examples/rules/<chosen> if present
-        let repo_examples = PathBuf::from("examples/rules").join(&chosen);
-        if repo_examples.exists() {
-            for entry in fs::read_dir(&repo_examples).with_context(|| format!("reading examples/rules/{}", chosen))? {
+        // copy default rules from templates/rules/<chosen> if present
+        let repo_templates = PathBuf::from("templates/rules").join(&chosen);
+        if repo_templates.exists() {
+            for entry in fs::read_dir(&repo_templates).with_context(|| format!("reading templates/rules/{}", chosen))? {
                 let e = entry?;
                 let p = e.path();
                 if p.extension().and_then(|s| s.to_str()) == Some("toml") {
@@ -52,10 +52,10 @@ output = "./.chelonian/output"
                 }
             }
         } else {
-            // fallback: try examples/rules root
-            let repo_examples_root = PathBuf::from("examples/rules");
-            if repo_examples_root.exists() {
-                for entry in fs::read_dir(&repo_examples_root).with_context(|| "reading examples/rules")? {
+            // fallback: try templates/rules root
+            let repo_templates_root = PathBuf::from("templates/rules");
+            if repo_templates_root.exists() {
+                for entry in fs::read_dir(&repo_templates_root).with_context(|| "reading templates/rules")? {
                     let e = entry?;
                     let p = e.path();
                     if p.extension().and_then(|s| s.to_str()) == Some("toml") {

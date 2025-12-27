@@ -53,7 +53,7 @@ pub fn load_rules_from_path(path_opt: Option<PathBuf>, include_builtin: bool) ->
 
 fn built_in_rules() -> Vec<Rule> {
     // Per "TOML-only" policy, keep built-in rules minimal and rely on TOML rule files
-    // shipped in `examples/rules/` and copied by `chel init`.
+    // shipped in `templates/rules/` and copied by `chel init`.
     // Returning empty vector here makes the runtime rely on TOML inputs only.
     Vec::new()
 }

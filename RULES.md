@@ -83,6 +83,6 @@ Notes:
 
 ## Compatibility
 
-Existing rules that previously used a single warning level should be reviewed and migrated to the appropriate `severity` value. The included example rules in `examples/rules/` are discovery-only (`info`).
+Existing rules that previously used a single warning level should be reviewed and migrated to the appropriate `severity` value. The included template rules in `templates/rules/` are discovery-only (`info`).
 
 If you have questions about a rule conversion, open an issue or PR with the proposed severity mapping.
