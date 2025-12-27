@@ -69,32 +69,7 @@ fn built_in_rules(platform: Option<&str>) -> Result<Vec<Rule>> {
             }
         }
     } else {
-        // Fallback to templates/rules if no platform specified (backward compatibility)
-        let templates = PathBuf::from("templates/rules");
-        if templates.exists() {
-            if let Ok(entries) = fs::read_dir(&templates) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        // iterate inner files
-                        if let Ok(inner) = fs::read_dir(&path) {
-                            for ie in inner.flatten() {
-                                let p = ie.path();
-                                if p.extension().and_then(|s| s.to_str()) == Some("toml") {
-                                    if let Ok(mut rr) = load_file(&p) {
-                                        rules.append(&mut rr);
-                                    }
-                                }
-                            }
-                        }
-                    } else if path.extension().and_then(|s| s.to_str()) == Some("toml") {
-                        if let Ok(mut rr) = load_file(&path) {
-                            rules.append(&mut rr);
-                        }
-                    }
-                }
-            }
-        }
+        // No platform specified -> do not load any builtin rules.
     }
     
     // Backwards-compatibility: some tests / consumers expect legacy ids.

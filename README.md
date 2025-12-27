@@ -5,6 +5,13 @@ Chelonian is a CLI static analysis tool for ROS workspaces.
 Usage (for users)
 ------------------
 
+Install (from crates.io):
+
+```bash
+# install the binary to your cargo bin directory
+cargo install chelonian
+```
+
 Install (from source):
 
 ```bash
@@ -49,7 +56,11 @@ chel --rules /path/to/custom/rules --no-builtin /path/to/ros/workspace
 List available rules:
 
 ```bash
-chel --list-rules /path/to/ros/workspace
+chel --list-rules
+
+# include builtin rules for a specific platform
+chel -p ros1 --list-rules
+chel -p ros2 --list-rules
 ```
 
 Rules
@@ -82,4 +93,3 @@ Project layout
 
 - `src/` — main source files (parsers, scanner, analyzer, plugins, output)
 - `builtin-rules/` — platform-specific builtin rule sets (ros1/, ros2/)
-- `templates/rules/` — sample rules

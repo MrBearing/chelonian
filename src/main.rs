@@ -15,7 +15,7 @@ struct Args {
     workspace_path: Option<PathBuf>,
 
     /// Output format [text|json]
-    #[arg(short, long, default_value = "text")]
+    #[arg(short, long, default_value = "json")]
     format: String,
 
     /// Output file (default stdout)
@@ -27,7 +27,7 @@ struct Args {
     rules: Option<PathBuf>,
 
     /// Platform [ros1|ros2] (selects builtin rules)
-    #[arg(short = 'P', long, value_parser = ["ros1", "ros2"])]
+    #[arg(short = 'p', long, value_parser = ["ros1", "ros2"])]
     platform: Option<String>,
 
     /// Disable builtin rules
@@ -46,20 +46,17 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    let ws = match args.workspace_path {
-        Some(p) => p.to_string_lossy().to_string(),
-        None => {
-            eprintln!("workspace path is required");
-            std::process::exit(2);
-        }
-    };
-
-    if args.verbose > 0 {
-        eprintln!("Scanning workspace: {}", ws);
+    if !args.no_builtin && args.platform.is_none() {
+        eprintln!("warning: builtin rules are enabled but --platform is not set; no builtin rules will be loaded");
+        eprintln!("hint: pass -p ros1|ros2 (or use --no-builtin)");
     }
 
-    // load rules
-    let rules = match plugins::load_rules_from_path(args.rules.clone(), args.platform.clone(), !args.no_builtin) {
+    // load rules (needed for --list-rules as well)
+    let rules = match plugins::load_rules_from_path(
+        args.rules.clone(),
+        args.platform.clone(),
+        !args.no_builtin,
+    ) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("warning: failed to load rules: {}", e);
@@ -76,6 +73,18 @@ fn main() {
             println!("{} - {}", r.id, r.name.clone().unwrap_or_default());
         }
         return;
+    }
+
+    let ws = match args.workspace_path {
+        Some(p) => p.to_string_lossy().to_string(),
+        None => {
+            eprintln!("workspace path is required");
+            std::process::exit(2);
+        }
+    };
+
+    if args.verbose > 0 {
+        eprintln!("Scanning workspace: {}", ws);
     }
 
     let scan = scanner::scan_workspace(&ws);
