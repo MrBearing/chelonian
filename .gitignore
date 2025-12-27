@@ -1,3 +1,4 @@
 /target
 result.txt
-.chelonian/
+result.json
+.chelonian/*
