@@ -17,7 +17,6 @@ template: |
 
   **Full changelog**: https://github.com/${{ repository }}/compare/$BASE...$NEXT
 
-/*
-This file configures Release Drafter (https://github.com/release-drafter/release-drafter)
-It updates a draft release with merged PRs grouped by labels. Customize categories and templates as needed.
-*/
+# This file configures Release Drafter (https://github.com/release-drafter/release-drafter)
+# It updates a draft release with merged PRs grouped by labels.
+# Customize categories and templates as needed.
