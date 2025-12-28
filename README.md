@@ -24,43 +24,53 @@ After installation use `chel` from your PATH.
 Analyze a workspace (text output):
 
 ```bash
-chel /path/to/ros/workspace
+chel analyze /path/to/ros/workspace
 ```
 
 Select a platform (load platform-specific builtin rules):
 
 ```bash
 # analyze with ROS1 builtin rules
-chel --platform ros1 /path/to/ros/workspace
+chel analyze --platform ros1 /path/to/ros/workspace
 
 # analyze with ROS2 builtin rules
-chel --platform ros2 /path/to/ros/workspace
+chel analyze --platform ros2 /path/to/ros/workspace
 ```
 
 JSON output:
 
 ```bash
-chel -f json /path/to/ros/workspace
+chel analyze -f json /path/to/ros/workspace
 ```
 
 Custom rules:
 
 ```bash
 # add custom rules on top of builtin rules
-chel --platform ros1 --rules /path/to/custom/rules /path/to/ros/workspace
+chel analyze --platform ros1 --rules /path/to/custom/rules /path/to/ros/workspace
 
 # load only custom rules (disable builtin)
-chel --rules /path/to/custom/rules --no-builtin /path/to/ros/workspace
+chel analyze --rules /path/to/custom/rules --no-builtin /path/to/ros/workspace
 ```
 
 List available rules:
 
 ```bash
-chel --list-rules
+chel analyze --list-rules
 
 # include builtin rules for a specific platform
-chel -p ros1 --list-rules
-chel -p ros2 --list-rules
+chel analyze -p ros1 --list-rules
+chel analyze -p ros2 --list-rules
+```
+
+Generate a static HTML report from JSON:
+
+```bash
+# 1) analyze and write JSON to a file
+chel analyze -p ros1 -f json -o report.json /path/to/ros/workspace
+
+# 2) convert JSON to a standalone HTML file
+chel report report.json -o report.html
 ```
 
 Rules

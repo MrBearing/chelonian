@@ -1,11 +1,14 @@
 #[cfg(test)]
 mod tests {
     use std::fs::{create_dir_all, write};
+    use std::path::PathBuf;
     use tempfile::tempdir;
 
     use crate::plugins::loader::load_rules_from_path;
     use crate::scanner::scan_workspace;
     use crate::analyzer::analyze;
+    use crate::commands;
+    use crate::models::AnalysisReport;
 
     #[test]
     fn integration_rules_and_scan() {
@@ -80,5 +83,85 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
         // check that roscpp dependency finding exists
         let has_roscpp = report.findings.iter().any(|v| v.rule_id == "ros1-dep-roscpp");
         assert!(has_roscpp, "expected roscpp dependency rule to trigger");
+    }
+
+    #[test]
+    fn analyze_command_writes_json_report() {
+            let td = tempdir().expect("tempdir");
+            let base = td.path();
+
+            // Minimal workspace
+            let src = base.join("src");
+            let pkg_dir = src.join("my_pkg");
+            create_dir_all(pkg_dir.join("src")).expect("mkdir");
+            write(
+                    pkg_dir.join("package.xml"),
+                    r#"<package format="2"><name>my_pkg</name><version>0.1.0</version><depend>roscpp</depend></package>"#,
+            )
+            .expect("write package.xml");
+
+            // output path
+            let out_json = base.join("out.json");
+
+            let args = commands::analyze::AnalyzeArgs {
+                    workspace_path: Some(PathBuf::from(base)),
+                    format: "json".to_string(),
+                    output: Some(out_json.clone()),
+                    rules: None,
+                    platform: Some("ros1".to_string()),
+                    no_builtin: false,
+                    list_rules: false,
+                    verbose: 0,
+            };
+
+            commands::analyze::run(args).expect("analyze should succeed");
+
+            let bytes = std::fs::read(out_json).expect("read out.json");
+            let report: AnalysisReport = serde_json::from_slice(&bytes).expect("parse json");
+
+            assert!(report.summary.get("total_packages").copied().unwrap_or(0) >= 1);
+            // total_findings may be 0 depending on builtin rules and workspace contents
+    }
+
+    #[test]
+    fn report_command_writes_html() {
+            let td = tempdir().expect("tempdir");
+            let base = td.path();
+
+            let input_json = base.join("report.json");
+            let output_html = base.join("report.html");
+
+            let report = AnalysisReport {
+                    summary: std::collections::HashMap::from([
+                            ("total_packages".to_string(), 1usize),
+                            ("total_findings".to_string(), 1usize),
+                    ]),
+                    packages: Vec::new(),
+                    findings: vec![crate::models::Finding {
+                            rule_id: "test-rule".to_string(),
+                            severity: "warning".to_string(),
+                            file: "src/main.cpp".to_string(),
+                            line: Some(42),
+                            message: "something happened".to_string(),
+                            suggestion: Some("try something else".to_string()),
+                            effort_hours: None,
+                    }],
+            };
+
+            std::fs::write(&input_json, serde_json::to_string_pretty(&report).unwrap())
+                    .expect("write report.json");
+
+            let args = commands::report::ReportArgs {
+                    input: input_json,
+                    output: Some(output_html.clone()),
+            };
+
+            commands::report::run(args).expect("report should succeed");
+
+            let html = std::fs::read_to_string(output_html).expect("read report.html");
+            assert!(html.contains("<h1>Chelonian Report</h1>"));
+            assert!(html.contains("test-rule"));
+            assert!(html.contains("something happened"));
+            assert!(html.contains("try something else"));
     }
 }
