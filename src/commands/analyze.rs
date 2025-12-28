@@ -11,7 +11,7 @@ pub struct AnalyzeArgs {
     pub workspace_path: Option<PathBuf>,
 
     /// Output format [text|json]
-    #[arg(short, long, default_value = "json")]
+    #[arg(short, long, default_value = "json", value_parser = ["text", "json"])]
     pub format: String,
 
     /// Output file (default stdout)
