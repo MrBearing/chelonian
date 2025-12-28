@@ -1,14 +1,14 @@
 #[cfg(test)]
 mod tests {
     use std::fs::{create_dir_all, write};
-        use std::path::PathBuf;
+    use std::path::PathBuf;
     use tempfile::tempdir;
 
     use crate::plugins::loader::load_rules_from_path;
     use crate::scanner::scan_workspace;
     use crate::analyzer::analyze;
-        use crate::commands;
-        use crate::models::AnalysisReport;
+    use crate::commands;
+    use crate::models::AnalysisReport;
 
     #[test]
     fn integration_rules_and_scan() {
