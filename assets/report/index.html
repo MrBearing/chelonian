@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chelonian Report</title>
+  <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="title">Chelonian Report</div>
+      <label><input type="checkbox" id="show-external"> Show external deps</label>
+      <label><input type="checkbox" id="show-no-findings" checked> Show packages without findings</label>
+      <div id="status"></div>
+    </header>
+    <div id="main">
+      <aside id="sidebar"></aside>
+      <div id="graph"></div>
+    </div>
+  </div>
+
+  <!-- Graph data is embedded for file:// support. -->
+  <script id="graph-data" type="application/json">__GRAPH_JSON__</script>
+  <script id="report-data" type="application/json">__REPORT_DATA_JSON__</script>
+  <script id="report-config" type="application/json">__REPORT_CONFIG_JSON__</script>
+
+  <script src="./assets/cytoscape.min.js"></script>
+  <script src="./assets/app.js"></script>
+</body>
+</html>

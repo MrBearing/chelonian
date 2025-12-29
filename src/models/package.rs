@@ -4,6 +4,12 @@ use serde::{Deserialize, Serialize};
 pub struct Dependency {
     pub name: String,
     pub version: Option<String>,
+
+    /// Dependency kind inferred from `package.xml` tag name (e.g. build/exec/test).
+    ///
+    /// This field is optional and defaults to None for backward compatibility with older JSON.
+    #[serde(default)]
+    pub kind: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -154,6 +154,7 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
             let args = commands::report::ReportArgs {
                     input: input_json,
                     output: Some(output_html.clone()),
+                    config: None,
             };
 
             commands::report::run(args).expect("report should succeed");
@@ -163,5 +164,108 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
             assert!(html.contains("test-rule"));
             assert!(html.contains("something happened"));
             assert!(html.contains("try something else"));
+    }
+
+    #[test]
+    fn report_command_writes_results_bundle() {
+            let td = tempdir().expect("tempdir");
+            let base = td.path();
+
+            let ws_pkg_a_path = base.join("src/a");
+            let ws_pkg_b_path = base.join("src/b");
+            create_dir_all(&ws_pkg_a_path).expect("mkdir a");
+            create_dir_all(&ws_pkg_b_path).expect("mkdir b");
+
+            let input_json = base.join("report.json");
+            let out_dir = base.join("results");
+
+            let pkg_a = crate::models::Package {
+                    name: "a".to_string(),
+                    version: None,
+                    path: ws_pkg_a_path.to_string_lossy().to_string(),
+                    build_type: None,
+                    dependencies: vec![
+                            crate::models::package::Dependency { name: "b".to_string(), version: None, kind: Some("build".to_string()) },
+                            crate::models::package::Dependency { name: "roscpp".to_string(), version: None, kind: Some("exec".to_string()) },
+                    ],
+                    format: Some(2),
+            };
+            let pkg_b = crate::models::Package {
+                    name: "b".to_string(),
+                    version: None,
+                    path: ws_pkg_b_path.to_string_lossy().to_string(),
+                    build_type: None,
+                    dependencies: vec![],
+                    format: Some(2),
+            };
+
+            let report = AnalysisReport {
+                    summary: std::collections::HashMap::from([
+                            ("total_packages".to_string(), 2usize),
+                            ("total_findings".to_string(), 1usize),
+                    ]),
+                    packages: vec![pkg_a, pkg_b],
+                    findings: vec![crate::models::Finding {
+                            rule_id: "test-rule".to_string(),
+                            severity: "warning".to_string(),
+                            file: base.join("src/a/file.cpp").to_string_lossy().to_string(),
+                            line: Some(1),
+                            message: "msg".to_string(),
+                            suggestion: None,
+                            effort_hours: None,
+                    }],
+            };
+
+            std::fs::write(&input_json, serde_json::to_string_pretty(&report).unwrap())
+                    .expect("write report.json");
+
+            let args = commands::report::ReportArgs {
+                    input: input_json,
+                    output: Some(out_dir.clone()),
+                    config: None,
+            };
+            commands::report::run(args).expect("report should succeed");
+
+            assert!(out_dir.join("index.html").exists());
+            assert!(out_dir.join("THIRD_PARTY_NOTICES.txt").exists());
+            assert!(out_dir.join("assets/style.css").exists());
+            assert!(out_dir.join("assets/app.js").exists());
+            assert!(out_dir.join("assets/cytoscape.min.js").exists());
+            assert!(out_dir.join("assets/graph.json").exists());
+
+            let index_html = std::fs::read_to_string(out_dir.join("index.html")).expect("read index.html");
+            assert!(index_html.contains("id=\"report-data\""));
+            assert!(index_html.contains("id=\"report-config\""));
+            assert!(!index_html.contains("__REPORT_DATA_JSON__"));
+            assert!(!index_html.contains("__REPORT_CONFIG_JSON__"));
+
+            let graph_txt = std::fs::read_to_string(out_dir.join("assets/graph.json")).expect("read graph.json");
+            let v: serde_json::Value = serde_json::from_str(&graph_txt).expect("parse graph.json");
+
+            let nodes = v.get("nodes").and_then(|x| x.as_array()).expect("nodes array");
+            let edges = v.get("edges").and_then(|x| x.as_array()).expect("edges array");
+
+            let node_ids: std::collections::HashSet<String> = nodes
+                    .iter()
+                    .filter_map(|n| n.get("id").and_then(|id| id.as_str()).map(|s| s.to_string()))
+                    .collect();
+            assert!(node_ids.contains("a"));
+            assert!(node_ids.contains("b"));
+            assert!(node_ids.contains("roscpp"));
+
+            let edge_pairs: std::collections::HashSet<(String, String)> = edges
+                    .iter()
+                    .filter_map(|e| {
+                            let s = e.get("source")?.as_str()?.to_string();
+                            let t = e.get("target")?.as_str()?.to_string();
+                            Some((s, t))
+                    })
+                    .collect();
+            assert!(edge_pairs.contains(&("a".to_string(), "b".to_string())));
+            assert!(edge_pairs.contains(&("a".to_string(), "roscpp".to_string())));
+
+            // Spot-check dep_type exists
+            let has_dep_type = edges.iter().any(|e| e.get("dep_type").is_some());
+            assert!(has_dep_type, "expected dep_type on edges");
     }
 }
