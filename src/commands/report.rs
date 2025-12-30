@@ -308,12 +308,21 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
     external_items.sort_by(|a, b| b.usage_count.cmp(&a.usage_count).then_with(|| a.name.cmp(&b.name)));
 
     // Findings: attach package name by path prefix.
+    // Sort packages by path length (longest first) to match most specific package.
+    let mut sorted_packages = report.packages.clone();
+    sorted_packages.sort_by(|a, b| b.path.len().cmp(&a.path.len()));
+
     let mut findings_items: Vec<FindingItem> = Vec::new();
     let mut rule_set: BTreeSet<String> = BTreeSet::new();
     for f in &report.findings {
         let mut pkg = "(unknown)".to_string();
-        for p in &report.packages {
-            if f.file.starts_with(&p.path) {
+        let file_path = Path::new(&f.file);
+
+        // Find the longest matching package path using proper path prefix matching
+        for p in &sorted_packages {
+            let pkg_path = Path::new(&p.path);
+            // Use strip_prefix which properly handles path separators
+            if file_path.strip_prefix(pkg_path).is_ok() {
                 pkg = p.name.clone();
                 break;
             }
