@@ -114,12 +114,45 @@ html, body {
   overflow: auto;
   border: 1px solid var(--border);
   max-height: 520px;
+
+  --matrix-cell-size: 28px;
+  --matrix-row-header-width: 360px;
+  --matrix-header-height: 210px;
+}
+
+/* AG Grid dependency matrix */
+.dep-grid {
+  height: 520px;
+  width: 100%;
+}
+
+.dep-matrix {
+  overflow: hidden;
+}
+
+.dep-grid .ag-root-wrapper {
+  border: 0;
+}
+
+.dep-grid .ag-header-cell-label {
+  font-size: 12px;
+}
+
+.dep-grid .ag-cell {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.dep-yes {
+  background: #f7f9ff;
 }
 
 .matrix table {
   width: max-content;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 12px;
+  table-layout: fixed;
 }
 
 .matrix th,
@@ -127,6 +160,67 @@ html, body {
   border: 1px solid var(--border);
   padding: 2px 4px;
   white-space: nowrap;
+}
+
+.matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f7f9ff;
+  overflow: visible;
+}
+
+.matrix .matrix-corner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  background: #f7f9ff;
+  width: var(--matrix-row-header-width);
+  min-width: var(--matrix-row-header-width);
+  max-width: var(--matrix-row-header-width);
+}
+
+.matrix .matrix-row-header {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background: #f7f9ff;
+  width: var(--matrix-row-header-width);
+  min-width: var(--matrix-row-header-width);
+  max-width: var(--matrix-row-header-width);
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.matrix .matrix-col-header {
+  width: var(--matrix-cell-size);
+  min-width: var(--matrix-cell-size);
+  max-width: var(--matrix-cell-size);
+  height: var(--matrix-header-height);
+  vertical-align: bottom;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  overflow: visible;
+}
+
+.matrix .matrix-col-label {
+  display: inline-block;
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%) rotate(-90deg);
+  transform-origin: bottom center;
+  white-space: nowrap;
+}
+
+.matrix .matrix-cell {
+  width: var(--matrix-cell-size);
+  min-width: var(--matrix-cell-size);
+  max-width: var(--matrix-cell-size);
+  text-align: center;
 }
 
 .sortable {

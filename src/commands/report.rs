@@ -81,6 +81,11 @@ fn write_results_bundle(out_dir: &Path, report: &AnalysisReport, config: &Report
     const CYTO_JS: &[u8] = include_bytes!("../../assets/vendor/cytoscape.min.js");
     const CYTO_LICENSE: &str = include_str!("../../assets/vendor/cytoscape.LICENSE");
 
+    const AG_GRID_JS: &[u8] = include_bytes!("../../assets/vendor/ag-grid-community.min.js");
+    const AG_GRID_CSS: &str = include_str!("../../assets/vendor/ag-grid.css");
+    const AG_GRID_THEME_CSS: &str = include_str!("../../assets/vendor/ag-theme-alpine.css");
+    const AG_GRID_LICENSE: &str = include_str!("../../assets/vendor/ag-grid.LICENSE");
+
     let graph = build_graph_json(report);
     let graph_json = serde_json::to_string_pretty(&graph)?;
     let embedded_graph_json = escape_json_for_script_tag(&graph_json);
@@ -106,12 +111,19 @@ fn write_results_bundle(out_dir: &Path, report: &AnalysisReport, config: &Report
     fs::write(assets_dir.join("cytoscape.min.js"), CYTO_JS)
         .with_context(|| format!("failed to write {}", assets_dir.join("cytoscape.min.js").display()))?;
 
+    fs::write(assets_dir.join("ag-grid-community.min.js"), AG_GRID_JS)
+        .with_context(|| format!("failed to write {}", assets_dir.join("ag-grid-community.min.js").display()))?;
+    fs::write(assets_dir.join("ag-grid.css"), AG_GRID_CSS)
+        .with_context(|| format!("failed to write {}", assets_dir.join("ag-grid.css").display()))?;
+    fs::write(assets_dir.join("ag-theme-alpine.css"), AG_GRID_THEME_CSS)
+        .with_context(|| format!("failed to write {}", assets_dir.join("ag-theme-alpine.css").display()))?;
+
     fs::write(assets_dir.join("graph.json"), format!("{}\n", graph_json))
         .with_context(|| format!("failed to write {}", assets_dir.join("graph.json").display()))?;
 
     let notices = format!(
-        "This report bundle includes third-party software.\n\n- cytoscape.js v3.30.2\n\n{}\n",
-        CYTO_LICENSE
+        "This report bundle includes third-party software.\n\n- cytoscape.js v3.30.2\n\n{}\n\n- AG Grid Community v32.3.4\n\n{}\n",
+        CYTO_LICENSE, AG_GRID_LICENSE
     );
     fs::write(out_dir.join("THIRD_PARTY_NOTICES.txt"), notices)
         .with_context(|| format!("failed to write {}", out_dir.join("THIRD_PARTY_NOTICES.txt").display()))?;

@@ -207,11 +207,16 @@ function buildCytoscape(container, elements) {
       },
     ],
     layout: {
-      name: 'breadthfirst',
-      directed: true,
-      direction: 'rightward',
+      name: 'cose',
+      fit: true,
       padding: 20,
-      spacingFactor: 1.1,
+      animate: false,
+      randomize: true,
+      nodeDimensionsIncludeLabels: true,
+      componentSpacing: 60,
+      idealEdgeLength: 80,
+      nodeRepulsion: 4096,
+      numIter: 600,
     },
     wheelSensitivity: 0.15,
   });
@@ -281,14 +286,19 @@ function renderWorkspaceDependenciesSection(graph) {
   const select = el('select');
   select.appendChild(el('option', { value: 'graph', text: 'Graph' }));
   select.appendChild(el('option', { value: 'matrix', text: 'Matrix (〇/×)' }));
+  // Default to matrix view for better overview.
+  select.value = 'matrix';
   controls.appendChild(el('label', { class: 'control', text: 'View:' }, [select]));
+
+  const filterInput = el('input', { type: 'search', placeholder: 'Filter rows…' });
+  controls.appendChild(el('label', { class: 'control', text: 'Filter:' }, [filterInput]));
   section.appendChild(controls);
 
   const graphWrap = el('div');
   const graphEl = el('div', { class: 'graph' });
   graphWrap.appendChild(graphEl);
 
-  const matrixWrap = el('div', { class: 'matrix' });
+  const matrixWrap = el('div', { class: 'matrix dep-matrix' });
 
   section.appendChild(graphWrap);
   section.appendChild(matrixWrap);
@@ -308,21 +318,21 @@ function renderWorkspaceDependenciesSection(graph) {
     if (matrixWrap.childNodes.length > 0) return;
 
     const pkgs = Array.from(workspaceNodes).sort();
-    const n = pkgs.length;
-    const MAX = 250;
-    if (n > MAX) {
-      const msg = el('div', { class: 'muted', text: `Matrix is large (${n}×${n}). Click to render.` });
-      const btn = el('button', { class: 'button', text: 'Render matrix' });
-      btn.addEventListener('click', () => {
-        matrixWrap.innerHTML = '';
-        matrixWrap.appendChild(renderDependencyMatrix(pkgs, pkgs, (src, dst) => src !== dst && hasAdjacency(workspaceAdj, src, dst)));
-      });
-      matrixWrap.appendChild(msg);
-      matrixWrap.appendChild(btn);
-      return;
-    }
+    const gridEl = el('div', { class: 'ag-theme-alpine dep-grid' });
+    matrixWrap.appendChild(gridEl);
+    const api = renderDependencyAgGrid(
+      gridEl,
+      pkgs,
+      pkgs,
+      (src, dst) => src !== dst && hasAdjacency(workspaceAdj, src, dst),
+      { pinnedRowHeaderWidth: 360 }
+    );
 
-    matrixWrap.appendChild(renderDependencyMatrix(pkgs, pkgs, (src, dst) => src !== dst && hasAdjacency(workspaceAdj, src, dst)));
+    // Hook filter input after grid is created.
+    if (api) {
+      filterInput.addEventListener('input', () => setAgGridQuickFilter(api, filterInput.value));
+      setAgGridQuickFilter(api, filterInput.value);
+    }
   }
 
   function applyView() {
@@ -351,14 +361,19 @@ function renderExternalDependenciesSection(graph) {
   const select = el('select');
   select.appendChild(el('option', { value: 'graph', text: 'Graph' }));
   select.appendChild(el('option', { value: 'matrix', text: 'Matrix (〇/×)' }));
+  // Default to matrix view for better overview.
+  select.value = 'matrix';
   controls.appendChild(el('label', { class: 'control', text: 'View:' }, [select]));
+
+  const filterInput = el('input', { type: 'search', placeholder: 'Filter rows…' });
+  controls.appendChild(el('label', { class: 'control', text: 'Filter:' }, [filterInput]));
   section.appendChild(controls);
 
   const graphWrap = el('div');
   const graphEl = el('div', { class: 'graph' });
   graphWrap.appendChild(graphEl);
 
-  const matrixWrap = el('div', { class: 'matrix' });
+  const matrixWrap = el('div', { class: 'matrix dep-matrix' });
 
   section.appendChild(graphWrap);
   section.appendChild(matrixWrap);
@@ -381,21 +396,20 @@ function renderExternalDependenciesSection(graph) {
 
     const rows = Array.from(workspaceNodes).sort();
     const cols = Array.from(externalNodes).sort();
-    const cells = rows.length * cols.length;
-    const MAX_CELLS = 60_000;
-    if (cells > MAX_CELLS) {
-      const msg = el('div', { class: 'muted', text: `Matrix is large (${rows.length}×${cols.length}). Click to render.` });
-      const btn = el('button', { class: 'button', text: 'Render matrix' });
-      btn.addEventListener('click', () => {
-        matrixWrap.innerHTML = '';
-        matrixWrap.appendChild(renderDependencyMatrix(rows, cols, (src, dst) => hasAdjacency(externalAdj, src, dst)));
-      });
-      matrixWrap.appendChild(msg);
-      matrixWrap.appendChild(btn);
-      return;
-    }
+    const gridEl = el('div', { class: 'ag-theme-alpine dep-grid' });
+    matrixWrap.appendChild(gridEl);
+    const api = renderDependencyAgGrid(
+      gridEl,
+      rows,
+      cols,
+      (src, dst) => hasAdjacency(externalAdj, src, dst),
+      { pinnedRowHeaderWidth: 360 }
+    );
 
-    matrixWrap.appendChild(renderDependencyMatrix(rows, cols, (src, dst) => hasAdjacency(externalAdj, src, dst)));
+    if (api) {
+      filterInput.addEventListener('input', () => setAgGridQuickFilter(api, filterInput.value));
+      setAgGridQuickFilter(api, filterInput.value);
+    }
   }
 
   function applyView() {
@@ -413,6 +427,88 @@ function renderExternalDependenciesSection(graph) {
   select.addEventListener('change', applyView);
   applyView();
   return section;
+}
+
+function setAgGridQuickFilter(api, text) {
+  const t = String(text || '');
+  if (typeof api.setQuickFilter === 'function') {
+    api.setQuickFilter(t);
+    return;
+  }
+  if (typeof api.setGridOption === 'function') {
+    api.setGridOption('quickFilterText', t);
+    return;
+  }
+  // Best-effort fallback.
+  try {
+    api.quickFilterText = t;
+    if (typeof api.onFilterChanged === 'function') api.onFilterChanged();
+  } catch {
+    // ignore
+  }
+}
+
+function renderDependencyAgGrid(container, rowNames, colNames, predicate, opts) {
+  if (!window.agGrid || typeof window.agGrid.Grid !== 'function') {
+    container.appendChild(el('div', { class: 'muted', text: 'AG Grid failed to load.' }));
+    return null;
+  }
+
+  const pinnedRowHeaderWidth = (opts && opts.pinnedRowHeaderWidth) ? opts.pinnedRowHeaderWidth : 320;
+  const rows = rowNames.map((r) => ({ rowPkg: r }));
+
+  const colDefs = [
+    {
+      headerName: 'Package',
+      field: 'rowPkg',
+      pinned: 'left',
+      width: pinnedRowHeaderWidth,
+      minWidth: 200,
+      sortable: true,
+      filter: 'agTextColumnFilter',
+      tooltipField: 'rowPkg',
+    },
+  ];
+
+  for (const colPkg of colNames) {
+    colDefs.push({
+      headerName: colPkg,
+      colId: colPkg,
+      width: 60,
+      minWidth: 60,
+      maxWidth: 80,
+      sortable: true,
+      filter: false,
+      headerTooltip: colPkg,
+      valueGetter: (params) => {
+        const rowPkg = params && params.data ? params.data.rowPkg : '';
+        return predicate(rowPkg, colPkg) ? '〇' : '';
+      },
+      cellClassRules: {
+        'dep-yes': (p) => p.value === '〇',
+      },
+      cellStyle: {
+        textAlign: 'center',
+      },
+    });
+  }
+
+  const gridOptions = {
+    rowData: rows,
+    columnDefs: colDefs,
+    defaultColDef: {
+      resizable: true,
+    },
+    rowHeight: 22,
+    headerHeight: 44,
+    animateRows: false,
+    suppressColumnVirtualisation: false,
+    suppressMovableColumns: true,
+    enableBrowserTooltips: true,
+  };
+
+  new window.agGrid.Grid(container, gridOptions);
+  return gridOptions.api || null;
 }
 
 function buildAdjacency(graph, includeEdge) {
@@ -433,12 +529,14 @@ function hasAdjacency(adj, src, dst) {
 }
 
 function renderDependencyMatrix(rowNames, colNames, predicate) {
-  const table = el('table');
+  const table = el('table', { class: 'matrix-table' });
   const thead = el('thead');
   const hr = el('tr');
-  hr.appendChild(el('th', { text: '' }));
+  hr.appendChild(el('th', { class: 'matrix-corner', text: '' }));
   for (const c of colNames) {
-    hr.appendChild(el('th', { text: c }));
+    hr.appendChild(el('th', { class: 'matrix-col-header' }, [
+      el('div', { class: 'matrix-col-label', text: c }),
+    ]));
   }
   thead.appendChild(hr);
   table.appendChild(thead);
@@ -446,10 +544,10 @@ function renderDependencyMatrix(rowNames, colNames, predicate) {
   const tbody = el('tbody');
   for (const r of rowNames) {
     const tr = el('tr');
-    tr.appendChild(el('th', { text: r }));
+    tr.appendChild(el('th', { class: 'matrix-row-header', text: r }));
     for (const c of colNames) {
       const yes = predicate(r, c);
-      tr.appendChild(el('td', { text: yes ? '〇' : '×' }));
+      tr.appendChild(el('td', { class: 'matrix-cell', text: yes ? '〇' : '×' }));
     }
     tbody.appendChild(tr);
   }

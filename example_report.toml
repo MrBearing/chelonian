@@ -13,11 +13,12 @@
 
 sections = [
   "package_summary",
-  "workspace_dependencies",
-  "external_dependencies",
   "findings",
   "findings_matrix",
   "external_libraries",
+  "workspace_dependencies",
+  "external_dependencies",
+
 ]
 
 hidden = []
