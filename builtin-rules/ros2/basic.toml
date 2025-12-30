@@ -148,7 +148,7 @@ category = "composable-node"
 
 [rules.match]
 type = "regex"
-pattern = "rclpy\\.node\\.Node.*composable|@composable"
+pattern = "rclpy_components|from\\s+rclpy\\.node\\s+import\\s+Node.*composition"
 
 [rules.output]
 message = "Found ROS2 Python composable node pattern."
@@ -443,5 +443,21 @@ pattern = "\\.declare_parameter\\(|self\\.declare_parameter"
 [rules.output]
 message = "Found ROS2 Python parameter declaration."
 suggestion = "Track parameter declarations for parameter analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-parameter-get"
+name = "Python Parameter Access (get_parameter)"
+description = "Detect ROS2 Python parameter access."
+severity = "info"
+category = "parameter"
+
+[rules.match]
+type = "regex"
+pattern = "\\.get_parameter\\(|self\\.get_parameter"
+
+[rules.output]
+message = "Found ROS2 Python parameter access."
+suggestion = "Track parameter usage for parameter analysis."
 effort_hours = 0.1
 
