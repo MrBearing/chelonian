@@ -305,7 +305,7 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
     for f in &report.findings {
         let mut pkg = "(unknown)".to_string();
         let file_path = Path::new(&f.file);
-        
+
         // Find the longest matching package path using proper path prefix matching
         for p in &sorted_packages {
             let pkg_path = Path::new(&p.path);
