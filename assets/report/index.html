@@ -7,18 +7,12 @@
   <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
-  <div id="app">
-    <header>
-      <div class="title">Chelonian Report</div>
-      <label><input type="checkbox" id="show-external"> Show external deps</label>
-      <label><input type="checkbox" id="show-no-findings" checked> Show packages without findings</label>
-      <div id="status"></div>
-    </header>
-    <div id="main">
-      <aside id="sidebar"></aside>
-      <div id="graph"></div>
-    </div>
-  </div>
+  <header class="header">
+    <div class="header__title" id="report-title">Chelonian Report</div>
+    <div class="header__meta" id="report-generated-at"></div>
+  </header>
+
+  <main id="content" class="content"></main>
 
   <!-- Graph data is embedded for file:// support. -->
   <script id="graph-data" type="application/json">__GRAPH_JSON__</script>

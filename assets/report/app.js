@@ -1,84 +1,176 @@
 async function main() {
-  const statusEl = document.getElementById('status');
-  const showExternalEl = document.getElementById('show-external');
-  const showNoFindingsEl = document.getElementById('show-no-findings');
-  const sidebarEl = document.getElementById('sidebar');
-
-  function setStatus(msg) {
-    if (statusEl) statusEl.textContent = msg;
-  }
-
-  setStatus('Loading graph…');
-
-  let graph = null;
-  const embedded = document.getElementById('graph-data');
-  if (embedded && embedded.textContent && embedded.textContent.trim().length > 0) {
-    graph = JSON.parse(embedded.textContent);
-  } else {
-    // Fallback for server-based viewing.
-    const graphRes = await fetch('./assets/graph.json');
-    if (!graphRes.ok) throw new Error(`failed to fetch graph.json: ${graphRes.status}`);
-    graph = await graphRes.json();
-  }
-
+  const graph = await loadGraph();
   const reportData = readEmbeddedJson('report-data') || {};
   const reportConfig = readEmbeddedJson('report-config') || {};
 
-  renderSidebar(sidebarEl, reportData, reportConfig);
+  renderHeader(reportData);
+  renderSections(graph, reportData, reportConfig);
+}
 
-  const elements = [];
+async function loadGraph() {
+  const embedded = document.getElementById('graph-data');
+  if (embedded && embedded.textContent && embedded.textContent.trim().length > 0) {
+    return JSON.parse(embedded.textContent);
+  }
+  // Fallback for server-based viewing.
+  const graphRes = await fetch('./assets/graph.json');
+  if (!graphRes.ok) throw new Error(`failed to fetch graph.json: ${graphRes.status}`);
+  return await graphRes.json();
+}
 
-  for (const n of graph.nodes) {
-    elements.push({
-      data: {
-        id: n.id,
-        label: n.label,
-        kind: n.kind,
-        has_findings: !!n.has_findings,
-      },
+function readEmbeddedJson(id) {
+  const el = document.getElementById(id);
+  if (!el || !el.textContent) return null;
+  const txt = el.textContent.trim();
+  if (!txt) return null;
+  return JSON.parse(txt);
+}
+
+function el(tag, attrs = {}, children = []) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') node.className = v;
+    else if (k === 'text') node.textContent = v;
+    else node.setAttribute(k, v);
+  }
+  for (const c of children) node.appendChild(c);
+  return node;
+}
+
+function onVisibleOnce(element, callback) {
+  if (!element) return;
+  if (!('IntersectionObserver' in window)) {
+    callback();
+    return;
+  }
+  let done = false;
+  const obs = new IntersectionObserver(
+    (entries) => {
+      for (const ent of entries) {
+        if (done) break;
+        if (ent.isIntersecting) {
+          done = true;
+          obs.disconnect();
+          callback();
+        }
+      }
+    },
+    { threshold: 0.01 }
+  );
+  obs.observe(element);
+}
+
+function setupLazyGraphInit(sectionEl, selectEl, initGraph) {
+  let initialized = false;
+
+  function ensureInit() {
+    if (initialized) return;
+    initialized = true;
+    requestAnimationFrame(() => {
+      initGraph();
     });
   }
 
-  for (const e of graph.edges) {
-    elements.push({
-      data: {
-        id: `${e.source} -> ${e.target}`,
-        source: e.source,
-        target: e.target,
-        dep_type: e.dep_type || 'build',
-      },
+  // Render when the section becomes visible (if view is graph).
+  onVisibleOnce(sectionEl, () => {
+    if (!selectEl || selectEl.value === 'graph') {
+      ensureInit();
+    }
+  });
+
+  // Render when the user switches to graph view.
+  if (selectEl) {
+    selectEl.addEventListener('change', () => {
+      if (selectEl.value === 'graph') {
+        ensureInit();
+      }
     });
   }
+}
 
-  const cy = cytoscape({
-    container: document.getElementById('graph'),
+function renderHeader(reportData) {
+  const titleEl = document.getElementById('report-title');
+  const generatedEl = document.getElementById('report-generated-at');
+  const meta = reportData && reportData.meta ? reportData.meta : null;
+
+  const title = meta && meta.title ? String(meta.title) : 'Chelonian Report';
+  if (titleEl) titleEl.textContent = title;
+
+  const ms = meta && typeof meta.generated_at_ms === 'number' ? meta.generated_at_ms : null;
+  if (generatedEl) {
+    if (ms != null) {
+      const dt = new Date(ms);
+      generatedEl.textContent = `Generated at: ${dt.toLocaleString()}`;
+    } else {
+      generatedEl.textContent = '';
+    }
+  }
+}
+
+function renderSections(graph, reportData, reportConfig) {
+  const contentEl = document.getElementById('content');
+  if (!contentEl) return;
+
+  const sections = Array.isArray(reportConfig.sections)
+    ? reportConfig.sections
+    : [
+      'package_summary',
+      'workspace_dependencies',
+      'external_dependencies',
+      'findings',
+      'findings_matrix',
+      'external_libraries',
+    ];
+  const hidden = new Set(Array.isArray(reportConfig.hidden) ? reportConfig.hidden : []);
+
+  contentEl.innerHTML = '';
+
+  for (const sectionId of sections) {
+    if (hidden.has(sectionId)) continue;
+
+    if (sectionId === 'package_summary') {
+      contentEl.appendChild(renderPackageSummarySection(reportData.package_summary || {}));
+    } else if (sectionId === 'workspace_dependencies') {
+      contentEl.appendChild(renderWorkspaceDependenciesSection(graph));
+    } else if (sectionId === 'external_dependencies') {
+      contentEl.appendChild(renderExternalDependenciesSection(graph));
+    } else if (sectionId === 'findings') {
+      contentEl.appendChild(renderFindingsSection(reportData.findings || {}));
+    } else if (sectionId === 'findings_matrix') {
+      contentEl.appendChild(renderFindingsMatrixSection(reportData.findings || {}));
+    } else if (sectionId === 'external_libraries') {
+      contentEl.appendChild(renderExternalLibrariesSection(reportData.external_libraries || {}));
+    } else {
+      const s = el('section', { class: 'section' });
+      s.appendChild(el('h2', { text: `Unknown section: ${sectionId}` }));
+      contentEl.appendChild(s);
+    }
+  }
+}
+
+function buildCytoscape(container, elements) {
+  return cytoscape({
+    container,
     elements,
     style: [
       {
         selector: 'node',
         style: {
           'label': 'data(label)',
-          'font-size': 8,
+          'font-size': 9,
           'text-wrap': 'wrap',
-          'text-max-width': 120,
+          'text-max-width': 140,
           'background-color': '#4f7bd9',
           'color': '#111',
           'border-width': 0,
-          'width': 10,
-          'height': 10,
+          'width': 12,
+          'height': 12,
         },
       },
       {
         selector: 'node[kind = "external"]',
         style: {
           'background-color': '#bdbdbd',
-        },
-      },
-      {
-        selector: 'node[has_findings]',
-        style: {
-          'border-width': 2,
-          'border-color': '#d9534f',
         },
       },
       {
@@ -117,267 +209,496 @@ async function main() {
     layout: {
       name: 'breadthfirst',
       directed: true,
+      direction: 'rightward',
       padding: 20,
       spacingFactor: 1.1,
     },
     wheelSensitivity: 0.15,
   });
+}
 
-  function applyFilters() {
-    const showExternal = !!showExternalEl?.checked;
-    const showNoFindings = !!showNoFindingsEl?.checked;
+function graphToElements(graph, includeNode, includeEdge) {
+  const elements = [];
+  const allowed = new Set();
 
-    cy.batch(() => {
-      cy.nodes().forEach((n) => {
-        const kind = n.data('kind');
-        const hasFindings = !!n.data('has_findings');
-
-        let visible = true;
-        if (kind === 'external' && !showExternal) visible = false;
-        if (kind !== 'external' && !hasFindings && !showNoFindings) visible = false;
-
-        if (visible) n.show();
-        else n.hide();
-      });
+  for (const n of graph.nodes || []) {
+    if (!includeNode(n)) continue;
+    allowed.add(n.id);
+    elements.push({
+      data: {
+        id: n.id,
+        label: n.label,
+        kind: n.kind,
+      },
     });
-
-    const visibleNodes = cy.nodes(':visible').length;
-    const visibleEdges = cy.edges(':visible').length;
-    setStatus(`Visible: ${visibleNodes} nodes, ${visibleEdges} edges`);
   }
 
-  showExternalEl?.addEventListener('change', applyFilters);
-  showNoFindingsEl?.addEventListener('change', applyFilters);
-
-  applyFilters();
-
-  setStatus(`Loaded: ${cy.nodes().length} nodes, ${cy.edges().length} edges`);
-}
-
-function readEmbeddedJson(id) {
-  const el = document.getElementById(id);
-  if (!el || !el.textContent) return null;
-  const txt = el.textContent.trim();
-  if (!txt) return null;
-  return JSON.parse(txt);
-}
-
-function renderSidebar(sidebarEl, reportData, reportConfig) {
-  if (!sidebarEl) return;
-
-  const sections = Array.isArray(reportConfig.sections)
-    ? reportConfig.sections
-    : ['summary', 'overview', 'packages', 'package_findings', 'external_deps', 'legend'];
-  const hidden = new Set(Array.isArray(reportConfig.hidden) ? reportConfig.hidden : []);
-
-  sidebarEl.innerHTML = '';
-
-  for (const sectionId of sections) {
-    if (hidden.has(sectionId)) continue;
-
-    if (sectionId === 'summary') {
-      sidebarEl.appendChild(renderSummarySection(reportData.summary || []));
-    } else if (sectionId === 'overview') {
-      sidebarEl.appendChild(renderOverviewSection(reportData.overview || {}));
-    } else if (sectionId === 'packages') {
-      sidebarEl.appendChild(renderPackagesSection(reportData.packages || {}));
-    } else if (sectionId === 'package_findings') {
-      sidebarEl.appendChild(renderPackageFindingsSection(reportData.packages || {}));
-    } else if (sectionId === 'external_deps') {
-      sidebarEl.appendChild(renderExternalDepsSection(reportData.external_deps || {}));
-    } else if (sectionId === 'legend') {
-      sidebarEl.appendChild(renderLegendSection());
-    }
+  for (const e of graph.edges || []) {
+    if (!includeEdge(e)) continue;
+    if (!allowed.has(e.source) || !allowed.has(e.target)) continue;
+    elements.push({
+      data: {
+        id: `${e.source} -> ${e.target} (${e.dep_type || 'build'})`,
+        source: e.source,
+        target: e.target,
+        dep_type: e.dep_type || 'build',
+      },
+    });
   }
+  return elements;
 }
 
-function el(tag, attrs = {}, children = []) {
-  const node = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === 'class') node.className = v;
-    else if (k === 'text') node.textContent = v;
-    else node.setAttribute(k, v);
-  }
-  for (const c of children) node.appendChild(c);
-  return node;
-}
-
-function renderOverviewSection(overview) {
+function renderPackageSummarySection(summary) {
   const section = el('section', { class: 'section' });
-  section.appendChild(el('h2', { text: 'Overview' }));
+  section.appendChild(el('h2', { text: 'Package summary' }));
 
   const kv = el('div', { class: 'kv' });
   kv.appendChild(el('div', { text: 'Packages' }));
-  kv.appendChild(el('div', { text: String(overview.total_packages ?? '-') }));
-  kv.appendChild(el('div', { text: 'Findings' }));
-  kv.appendChild(el('div', { text: String(overview.total_findings ?? '-') }));
-  if (overview.source_root) {
-    kv.appendChild(el('div', { text: 'Source root' }));
-    kv.appendChild(el('div', { text: overview.source_root }));
-  }
+  kv.appendChild(el('div', { text: String(summary.package_count ?? 0) }));
+  kv.appendChild(el('div', { text: 'C++ related files' }));
+  kv.appendChild(el('div', { text: String(summary.cpp_files ?? 0) }));
+  kv.appendChild(el('div', { text: 'Python files' }));
+  kv.appendChild(el('div', { text: String(summary.python_files ?? 0) }));
+  kv.appendChild(el('div', { text: 'Launch files' }));
+  kv.appendChild(el('div', { text: String(summary.launch_files ?? 0) }));
+  kv.appendChild(el('div', { text: 'URDF files' }));
+  kv.appendChild(el('div', { text: String(summary.urdf_files ?? 0) }));
+  kv.appendChild(el('div', { text: 'Xacro files' }));
+  kv.appendChild(el('div', { text: String(summary.xacro_files ?? 0) }));
+  kv.appendChild(el('div', { text: 'Mesh files' }));
+  kv.appendChild(el('div', { text: String(summary.mesh_files ?? 0) }));
   section.appendChild(kv);
+  section.appendChild(el('div', { class: 'muted', text: 'Mesh extensions counted: stl/dae/obj/ply' }));
+  return section;
+}
 
-  const groups = Array.isArray(overview.top_groups) ? overview.top_groups : [];
-  if (groups.length > 0) {
-    section.appendChild(el('div', { class: 'muted', text: 'Top groups (by packages)' }));
-    const table = el('table', { class: 'table' });
-    table.appendChild(el('thead', {}, [
-      el('tr', {}, [
-        el('th', { text: 'Group' }),
-        el('th', { text: 'Packages' }),
-        el('th', { text: 'With findings' }),
-      ]),
-    ]));
-    const tbody = el('tbody');
-    for (const g of groups) {
-      tbody.appendChild(el('tr', {}, [
-        el('td', { text: g.name || '' }),
-        el('td', { text: String(g.packages ?? 0) }),
-        el('td', { text: String(g.packages_with_findings ?? 0) }),
-      ]));
+function renderWorkspaceDependenciesSection(graph) {
+  const section = el('section', { class: 'section' });
+  section.appendChild(el('h2', { text: 'Workspace package dependencies' }));
+  section.appendChild(el('div', { class: 'muted', text: 'View: matrix or graph (edges colored by build/exec/test).' }));
+
+  const controls = el('div', { class: 'controls' });
+  const select = el('select');
+  select.appendChild(el('option', { value: 'graph', text: 'Graph' }));
+  select.appendChild(el('option', { value: 'matrix', text: 'Matrix (〇/×)' }));
+  controls.appendChild(el('label', { class: 'control', text: 'View:' }, [select]));
+  section.appendChild(controls);
+
+  const graphWrap = el('div');
+  const graphEl = el('div', { class: 'graph' });
+  graphWrap.appendChild(graphEl);
+
+  const matrixWrap = el('div', { class: 'matrix' });
+
+  section.appendChild(graphWrap);
+  section.appendChild(matrixWrap);
+
+  const workspaceNodes = new Set((graph.nodes || []).filter(n => n.kind === 'workspace').map(n => n.id));
+  const workspaceAdj = buildAdjacency(graph, (e) => workspaceNodes.has(e.source) && workspaceNodes.has(e.target));
+  const elements = graphToElements(
+    graph,
+    (n) => n.kind === 'workspace',
+    (e) => workspaceNodes.has(e.source) && workspaceNodes.has(e.target)
+  );
+  setupLazyGraphInit(section, select, () => {
+    buildCytoscape(graphEl, elements);
+  });
+
+  function renderMatrixIfNeeded() {
+    if (matrixWrap.childNodes.length > 0) return;
+
+    const pkgs = Array.from(workspaceNodes).sort();
+    const n = pkgs.length;
+    const MAX = 250;
+    if (n > MAX) {
+      const msg = el('div', { class: 'muted', text: `Matrix is large (${n}×${n}). Click to render.` });
+      const btn = el('button', { class: 'button', text: 'Render matrix' });
+      btn.addEventListener('click', () => {
+        matrixWrap.innerHTML = '';
+        matrixWrap.appendChild(renderDependencyMatrix(pkgs, pkgs, (src, dst) => src !== dst && hasAdjacency(workspaceAdj, src, dst)));
+      });
+      matrixWrap.appendChild(msg);
+      matrixWrap.appendChild(btn);
+      return;
     }
-    table.appendChild(tbody);
-    section.appendChild(table);
+
+    matrixWrap.appendChild(renderDependencyMatrix(pkgs, pkgs, (src, dst) => src !== dst && hasAdjacency(workspaceAdj, src, dst)));
   }
 
+  function applyView() {
+    const v = select.value;
+    if (v === 'graph') {
+      graphWrap.style.display = '';
+      matrixWrap.style.display = 'none';
+    } else {
+      graphWrap.style.display = 'none';
+      matrixWrap.style.display = '';
+      renderMatrixIfNeeded();
+    }
+  }
+
+  select.addEventListener('change', applyView);
+  applyView();
   return section;
 }
 
-function renderSummarySection(summaryItems) {
+function renderExternalDependenciesSection(graph) {
   const section = el('section', { class: 'section' });
-  section.appendChild(el('h2', { text: 'Summary' }));
+  section.appendChild(el('h2', { text: 'External library dependencies' }));
+  section.appendChild(el('div', { class: 'muted', text: 'View: matrix or graph (workspace -> external).' }));
 
-  const items = Array.isArray(summaryItems) ? summaryItems : [];
-  if (items.length === 0) {
-    section.appendChild(el('div', { class: 'muted', text: 'No summary data.' }));
-    return section;
+  const controls = el('div', { class: 'controls' });
+  const select = el('select');
+  select.appendChild(el('option', { value: 'graph', text: 'Graph' }));
+  select.appendChild(el('option', { value: 'matrix', text: 'Matrix (〇/×)' }));
+  controls.appendChild(el('label', { class: 'control', text: 'View:' }, [select]));
+  section.appendChild(controls);
+
+  const graphWrap = el('div');
+  const graphEl = el('div', { class: 'graph' });
+  graphWrap.appendChild(graphEl);
+
+  const matrixWrap = el('div', { class: 'matrix' });
+
+  section.appendChild(graphWrap);
+  section.appendChild(matrixWrap);
+
+  const workspaceNodes = new Set((graph.nodes || []).filter(n => n.kind === 'workspace').map(n => n.id));
+  const externalNodes = new Set((graph.nodes || []).filter(n => n.kind === 'external').map(n => n.id));
+  const externalAdj = buildAdjacency(graph, (e) => workspaceNodes.has(e.source) && externalNodes.has(e.target));
+
+  const elements = graphToElements(
+    graph,
+    (n) => n.kind === 'workspace' || n.kind === 'external',
+    (e) => workspaceNodes.has(e.source) && externalNodes.has(e.target)
+  );
+  setupLazyGraphInit(section, select, () => {
+    buildCytoscape(graphEl, elements);
+  });
+
+  function renderMatrixIfNeeded() {
+    if (matrixWrap.childNodes.length > 0) return;
+
+    const rows = Array.from(workspaceNodes).sort();
+    const cols = Array.from(externalNodes).sort();
+    const cells = rows.length * cols.length;
+    const MAX_CELLS = 60_000;
+    if (cells > MAX_CELLS) {
+      const msg = el('div', { class: 'muted', text: `Matrix is large (${rows.length}×${cols.length}). Click to render.` });
+      const btn = el('button', { class: 'button', text: 'Render matrix' });
+      btn.addEventListener('click', () => {
+        matrixWrap.innerHTML = '';
+        matrixWrap.appendChild(renderDependencyMatrix(rows, cols, (src, dst) => hasAdjacency(externalAdj, src, dst)));
+      });
+      matrixWrap.appendChild(msg);
+      matrixWrap.appendChild(btn);
+      return;
+    }
+
+    matrixWrap.appendChild(renderDependencyMatrix(rows, cols, (src, dst) => hasAdjacency(externalAdj, src, dst)));
+  }
+
+  function applyView() {
+    const v = select.value;
+    if (v === 'graph') {
+      graphWrap.style.display = '';
+      matrixWrap.style.display = 'none';
+    } else {
+      graphWrap.style.display = 'none';
+      matrixWrap.style.display = '';
+      renderMatrixIfNeeded();
+    }
+  }
+
+  select.addEventListener('change', applyView);
+  applyView();
+  return section;
+}
+
+function buildAdjacency(graph, includeEdge) {
+  const adj = new Map();
+  for (const e of graph.edges || []) {
+    if (!includeEdge(e)) continue;
+    const src = e.source;
+    const dst = e.target;
+    if (!adj.has(src)) adj.set(src, new Set());
+    adj.get(src).add(dst);
+  }
+  return adj;
+}
+
+function hasAdjacency(adj, src, dst) {
+  const set = adj.get(src);
+  return !!set && set.has(dst);
+}
+
+function renderDependencyMatrix(rowNames, colNames, predicate) {
+  const table = el('table');
+  const thead = el('thead');
+  const hr = el('tr');
+  hr.appendChild(el('th', { text: '' }));
+  for (const c of colNames) {
+    hr.appendChild(el('th', { text: c }));
+  }
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  const tbody = el('tbody');
+  for (const r of rowNames) {
+    const tr = el('tr');
+    tr.appendChild(el('th', { text: r }));
+    for (const c of colNames) {
+      const yes = predicate(r, c);
+      tr.appendChild(el('td', { text: yes ? '〇' : '×' }));
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  return table;
+}
+
+function renderFindingsSection(findings) {
+  const section = el('section', { class: 'section' });
+  section.appendChild(el('h2', { text: 'Findings' }));
+  section.appendChild(el('div', { class: 'muted', text: 'View: by package (detailed list) or by finding (counts per package).' }));
+
+  const controls = el('div', { class: 'controls' });
+  const select = el('select');
+  select.appendChild(el('option', { value: 'by_package', text: 'By package' }));
+  select.appendChild(el('option', { value: 'by_finding', text: 'By finding (rule)' }));
+  controls.appendChild(el('label', { class: 'control', text: 'View:' }, [select]));
+  section.appendChild(controls);
+
+  const byPkg = el('div');
+  const byRule = el('div');
+  section.appendChild(byPkg);
+  section.appendChild(byRule);
+
+  function renderByPackage() {
+    if (byPkg.childNodes.length > 0) return;
+    const items = Array.isArray(findings.items) ? findings.items : [];
+    const groups = new Map();
+    for (const it of items) {
+      const k = String(it.package || '(unknown)');
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(it);
+    }
+    const keys = Array.from(groups.keys()).sort();
+
+    for (const pkg of keys) {
+      byPkg.appendChild(el('h3', { text: pkg }));
+      const tbl = el('table', { class: 'table' });
+      tbl.appendChild(el('thead', {}, [
+        el('tr', {}, [
+          el('th', { text: 'Rule' }),
+          el('th', { text: 'Severity' }),
+          el('th', { text: 'File' }),
+          el('th', { text: 'Line' }),
+          el('th', { text: 'Message' }),
+        ]),
+      ]));
+      const tb = el('tbody');
+      for (const it of groups.get(pkg)) {
+        tb.appendChild(el('tr', {}, [
+          el('td', { text: String(it.rule_id || '') }),
+          el('td', { text: String(it.severity || '') }),
+          el('td', { text: String(it.file || '') }),
+          el('td', { text: it.line != null ? String(it.line) : '' }),
+          el('td', { text: String(it.message || '') }),
+        ]));
+      }
+      tbl.appendChild(tb);
+      byPkg.appendChild(tbl);
+    }
+  }
+
+  function renderByFinding() {
+    if (byRule.childNodes.length > 0) return;
+    const counts = Array.isArray(findings.counts) ? findings.counts : [];
+    const rules = new Map();
+    for (const c of counts) {
+      const rule = String(c.rule_id || '');
+      if (!rules.has(rule)) rules.set(rule, []);
+      rules.get(rule).push(c);
+    }
+    const ruleIds = Array.from(rules.keys()).sort();
+    for (const ruleId of ruleIds) {
+      byRule.appendChild(el('h3', { text: ruleId }));
+      const tbl = el('table', { class: 'table' });
+      tbl.appendChild(el('thead', {}, [
+        el('tr', {}, [
+          el('th', { text: 'Package' }),
+          el('th', { text: 'Count' }),
+        ]),
+      ]));
+      const tb = el('tbody');
+      const rows = rules.get(ruleId).slice().sort((a, b) => {
+        const cb = Number(b.count || 0) - Number(a.count || 0);
+        if (cb !== 0) return cb;
+        return String(a.package || '').localeCompare(String(b.package || ''));
+      });
+      for (const r of rows) {
+        tb.appendChild(el('tr', {}, [
+          el('td', { text: String(r.package || '') }),
+          el('td', { text: String(r.count || 0) }),
+        ]));
+      }
+      tbl.appendChild(tb);
+      byRule.appendChild(tbl);
+    }
+  }
+
+  function applyView() {
+    const v = select.value;
+    if (v === 'by_package') {
+      byPkg.style.display = '';
+      byRule.style.display = 'none';
+      renderByPackage();
+    } else {
+      byPkg.style.display = 'none';
+      byRule.style.display = '';
+      renderByFinding();
+    }
+  }
+
+  select.addEventListener('change', applyView);
+  applyView();
+  return section;
+}
+
+function renderFindingsMatrixSection(findings) {
+  const section = el('section', { class: 'section' });
+  section.appendChild(el('h2', { text: 'Findings matrix (packages × findings)' }));
+  section.appendChild(el('div', { class: 'muted', text: 'Click a header to sort.' }));
+
+  const packages = Array.isArray(findings.packages) ? findings.packages.slice() : [];
+  const rules = Array.isArray(findings.rules) ? findings.rules.slice() : [];
+  const counts = Array.isArray(findings.counts) ? findings.counts : [];
+
+  const map = new Map();
+  for (const c of counts) {
+    map.set(`${c.package}::${c.rule_id}`, Number(c.count || 0));
   }
 
   const table = el('table', { class: 'table' });
-  table.appendChild(el('thead', {}, [
-    el('tr', {}, [
-      el('th', { text: 'Key' }),
-      el('th', { text: 'Value' }),
-    ]),
-  ]));
-  const tbody = el('tbody');
-  for (const it of items) {
-    tbody.appendChild(el('tr', {}, [
-      el('td', { text: String(it.key ?? '') }),
-      el('td', { text: String(it.value ?? 0) }),
-    ]));
+  const thead = el('thead');
+  const hr = el('tr');
+  const thPkg = el('th', { text: 'Package' });
+  thPkg.className = 'sortable';
+  hr.appendChild(thPkg);
+  for (const r of rules) {
+    const th = el('th', { text: r });
+    th.className = 'sortable';
+    hr.appendChild(th);
   }
+  thead.appendChild(hr);
+  table.appendChild(thead);
+
+  const tbody = el('tbody');
   table.appendChild(tbody);
-  section.appendChild(table);
+
+  const rows = packages.map((p) => {
+    const row = { package: p, cells: [] };
+    for (const r of rules) {
+      row.cells.push(map.get(`${p}::${r}`) || 0);
+    }
+    return row;
+  });
+
+  function renderBody(sorted) {
+    tbody.innerHTML = '';
+    for (const row of sorted) {
+      const tr = el('tr');
+      tr.appendChild(el('td', { text: row.package }));
+      for (const v of row.cells) {
+        tr.appendChild(el('td', { text: String(v) }));
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  let sortCol = -1;
+  let sortAsc = true;
+
+  function sortAndRender() {
+    const sorted = rows.slice();
+    sorted.sort((a, b) => {
+      if (sortCol < 0) {
+        const c = a.package.localeCompare(b.package);
+        return sortAsc ? c : -c;
+      }
+      const av = a.cells[sortCol];
+      const bv = b.cells[sortCol];
+      const c = Number(av) - Number(bv);
+      if (c !== 0) return sortAsc ? c : -c;
+      return a.package.localeCompare(b.package);
+    });
+    renderBody(sorted);
+  }
+
+  thPkg.addEventListener('click', () => {
+    if (sortCol === -1) sortAsc = !sortAsc;
+    sortCol = -1;
+    sortAndRender();
+  });
+  const ths = hr.querySelectorAll('th');
+  for (let i = 1; i < ths.length; i++) {
+    const idx = i - 1;
+    ths[i].addEventListener('click', () => {
+      if (sortCol === idx) sortAsc = !sortAsc;
+      else {
+        sortCol = idx;
+        sortAsc = false;
+      }
+      sortAndRender();
+    });
+  }
+
+  sortAndRender();
+  section.appendChild(el('div', { class: 'matrix' }, [table]));
   return section;
 }
 
-function renderPackagesSection(packages) {
+function renderExternalLibrariesSection(externalLibraries) {
   const section = el('section', { class: 'section' });
-  section.appendChild(el('h2', { text: 'Packages' }));
+  section.appendChild(el('h2', { text: 'External libraries' }));
 
-  const itemsRaw = Array.isArray(packages.items) ? packages.items : [];
-  if (itemsRaw.length === 0) {
-    section.appendChild(el('div', { class: 'muted', text: 'No packages found.' }));
+  const items = Array.isArray(externalLibraries.items) ? externalLibraries.items : [];
+  if (items.length === 0) {
+    section.appendChild(el('div', { class: 'muted', text: 'No external libraries found.' }));
     return section;
   }
 
-  const items = itemsRaw.slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+  section.appendChild(el('div', { class: 'muted', text: 'Repository URLs are filled from report config (external_repos).' }));
 
   const table = el('table', { class: 'table' });
   table.appendChild(el('thead', {}, [
     el('tr', {}, [
       el('th', { text: 'Name' }),
-      el('th', { text: 'Path' }),
+      el('th', { text: 'Usage count' }),
+      el('th', { text: 'Repository' }),
     ]),
   ]));
   const tbody = el('tbody');
   for (const it of items) {
-    tbody.appendChild(el('tr', {}, [
-      el('td', { text: String(it.name ?? '') }),
-      el('td', { text: String(it.path ?? '') }),
-    ]));
+    const repo = it.repository ? String(it.repository) : '';
+    const repoCell = repo
+      ? el('a', { href: repo, target: '_blank', rel: 'noreferrer', text: repo })
+      : el('span', { class: 'muted', text: '' });
+    const tr = el('tr', {}, [
+      el('td', { text: String(it.name || '') }),
+      el('td', { text: String(it.usage_count ?? 0) }),
+      el('td', {}, [repoCell]),
+    ]);
+    tbody.appendChild(tr);
   }
   table.appendChild(tbody);
   section.appendChild(table);
-  return section;
-}
-
-function renderPackageFindingsSection(packages) {
-  const section = el('section', { class: 'section' });
-  section.appendChild(el('h2', { text: 'Package findings' }));
-
-  const items = Array.isArray(packages.items) ? packages.items : [];
-  if (items.length === 0) {
-    section.appendChild(el('div', { class: 'muted', text: 'No packages found.' }));
-    return section;
-  }
-
-  section.appendChild(el('div', { class: 'muted', text: 'Sorted by findings count (desc).' }));
-
-  const table = el('table', { class: 'table' });
-  table.appendChild(el('thead', {}, [
-    el('tr', {}, [
-      el('th', { text: 'Package' }),
-      el('th', { text: 'Findings' }),
-      el('th', { text: 'Has findings' }),
-    ]),
-  ]));
-  const tbody = el('tbody');
-  for (const it of items) {
-    tbody.appendChild(el('tr', {}, [
-      el('td', { text: String(it.name ?? '') }),
-      el('td', { text: String(it.findings_count ?? 0) }),
-      el('td', { text: (it.has_findings ? 'yes' : 'no') }),
-    ]));
-  }
-  table.appendChild(tbody);
-  section.appendChild(table);
-  return section;
-}
-
-function renderExternalDepsSection(externalDeps) {
-  const section = el('section', { class: 'section' });
-  section.appendChild(el('h2', { text: 'External deps' }));
-
-  const items = Array.isArray(externalDeps.top) ? externalDeps.top : [];
-  if (items.length === 0) {
-    section.appendChild(el('div', { class: 'muted', text: 'No external dependencies found.' }));
-    return section;
-  }
-
-  section.appendChild(el('div', { class: 'muted', text: 'Usage count = number of workspace packages that depend on it' }));
-
-  const table = el('table', { class: 'table' });
-  table.appendChild(el('thead', {}, [
-    el('tr', {}, [
-      el('th', { text: 'Name' }),
-      el('th', { text: 'Count' }),
-    ]),
-  ]));
-  const tbody = el('tbody');
-  for (const it of items) {
-    tbody.appendChild(el('tr', {}, [
-      el('td', { text: it.name || '' }),
-      el('td', { text: String(it.count ?? 0) }),
-    ]));
-  }
-  table.appendChild(tbody);
-  section.appendChild(table);
-  return section;
-}
-
-function renderLegendSection() {
-  const section = el('section', { class: 'section' });
-  section.appendChild(el('h2', { text: 'Legend' }));
-  section.appendChild(el('div', { class: 'muted', text: 'Edges: build=black, exec=green, test=orange' }));
   return section;
 }
 
 main().catch((e) => {
-  const statusEl = document.getElementById('status');
-  if (statusEl) {
-    statusEl.textContent = `Error: ${e.message} (If you opened index.html via file:// and see this, the embedded graph data might be missing.)`;
-  }
+  const generatedEl = document.getElementById('report-generated-at');
+  if (generatedEl) generatedEl.textContent = `Error: ${e.message}`;
   console.error(e);
 });

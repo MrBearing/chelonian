@@ -1,35 +1,40 @@
 html, body {
-  height: 100%;
   margin: 0;
   padding: 0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
 
-#app {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 100%;
+:root {
+  --accent: #4f7bd9;
+  --border: #ddd;
+  --muted: #666;
+  --bg: #fff;
 }
 
-#main {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  min-height: 0;
+.header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
 }
 
-#sidebar {
-  border-right: 1px solid #ddd;
-  padding: 10px 12px;
-  overflow: auto;
+.header__title {
+  font-weight: 800;
+  color: #0b1a3a;
+  font-size: 16px;
+  line-height: 1.2;
 }
 
-.section {
-  margin-bottom: 14px;
+.header__meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
-.section h2 {
-  font-size: 14px;
-  margin: 0 0 6px;
+.content {
+  padding: 12px 14px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .kv {
@@ -37,6 +42,19 @@ html, body {
   grid-template-columns: auto 1fr;
   gap: 4px 8px;
   font-size: 12px;
+}
+
+.section {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  padding: 10px 12px;
+  background: var(--bg);
+}
+
+.section h2 {
+  font-size: 14px;
+  margin: 0 0 10px;
+  color: #0b1a3a;
 }
 
 .table {
@@ -47,42 +65,70 @@ html, body {
 
 .table th,
 .table td {
-  border: 1px solid #ddd;
+  border: 1px solid var(--border);
   padding: 4px 6px;
   text-align: left;
 }
 
+.table th {
+  background: #f7f9ff;
+}
+
 .muted {
-  color: #666;
+  color: var(--muted);
   font-size: 12px;
 }
 
-header {
-  padding: 10px 12px;
-  border-bottom: 1px solid #ddd;
+.controls {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+  margin-bottom: 10px;
 }
 
-header .title {
-  font-weight: 700;
-}
-
-header label {
-  user-select: none;
+.control {
   display: inline-flex;
   gap: 6px;
   align-items: center;
-}
-
-#graph {
-  width: 100%;
-  height: 100%;
-}
-
-#status {
   font-size: 12px;
-  color: #444;
+  user-select: none;
+}
+
+.button {
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  background: #f7f9ff;
+  cursor: pointer;
+}
+
+.graph {
+  width: 100%;
+  height: 520px;
+  border: 1px solid var(--border);
+}
+
+.matrix {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid var(--border);
+  max-height: 520px;
+}
+
+.matrix table {
+  width: max-content;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.matrix th,
+.matrix td {
+  border: 1px solid var(--border);
+  padding: 2px 4px;
+  white-space: nowrap;
+}
+
+.sortable {
+  cursor: pointer;
 }

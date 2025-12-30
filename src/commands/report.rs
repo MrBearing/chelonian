@@ -1,10 +1,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
 use clap::Args;
 use serde::{Deserialize, Serialize};
+use walkdir::WalkDir;
 
 use crate::models::AnalysisReport;
 
@@ -83,7 +85,7 @@ fn write_results_bundle(out_dir: &Path, report: &AnalysisReport, config: &Report
     let graph_json = serde_json::to_string_pretty(&graph)?;
     let embedded_graph_json = escape_json_for_script_tag(&graph_json);
 
-    let report_data = build_report_data(report);
+    let report_data = build_report_data(report, config)?;
     let report_data_json = serde_json::to_string_pretty(&report_data)?;
     let embedded_report_data_json = escape_json_for_script_tag(&report_data_json);
 
@@ -127,25 +129,28 @@ fn escape_json_for_script_tag(json: &str) -> String {
 struct ReportConfigToml {
     sections: Option<Vec<String>>,
     hidden: Option<Vec<String>>,
+    external_repos: Option<BTreeMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
 struct ReportConfig {
     sections: Vec<String>,
     hidden: Vec<String>,
+    external_repos: BTreeMap<String, String>,
 }
 
 fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
     let defaults = ReportConfig {
         sections: vec![
-            "summary".to_string(),
-            "overview".to_string(),
-            "packages".to_string(),
-            "package_findings".to_string(),
-            "external_deps".to_string(),
-            "legend".to_string(),
+            "package_summary".to_string(),
+            "workspace_dependencies".to_string(),
+            "external_dependencies".to_string(),
+            "findings".to_string(),
+            "findings_matrix".to_string(),
+            "external_libraries".to_string(),
         ],
         hidden: Vec::new(),
+        external_repos: BTreeMap::new(),
     };
 
     let Some(path) = config_path else {
@@ -161,147 +166,114 @@ fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
     Ok(ReportConfig {
         sections: cfg.sections.unwrap_or(defaults.sections),
         hidden: cfg.hidden.unwrap_or_default(),
+        external_repos: cfg.external_repos.unwrap_or_default(),
     })
 }
 
 #[derive(Debug, Clone, Serialize)]
 struct ReportData {
-    summary: Vec<SummaryItem>,
-    overview: OverviewData,
-    packages: PackagesData,
-    external_deps: ExternalDepsData,
+    meta: MetaData,
+    package_summary: PackageSummaryData,
+    external_libraries: ExternalLibrariesData,
+    findings: FindingsData,
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct SummaryItem {
-    key: String,
-    value: usize,
+struct MetaData {
+    title: String,
+    generated_at_ms: u128,
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct OverviewData {
-    total_packages: usize,
-    total_findings: usize,
-    source_root: Option<String>,
-    top_groups: Vec<GroupSummary>,
+struct PackageSummaryData {
+    package_count: usize,
+    cpp_files: usize,
+    python_files: usize,
+    launch_files: usize,
+    urdf_files: usize,
+    xacro_files: usize,
+    mesh_files: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct GroupSummary {
-    name: String,
-    packages: usize,
-    packages_with_findings: usize,
-}
-
-#[derive(Debug, Clone, Serialize)]
-struct ExternalDepsData {
+struct ExternalLibrariesData {
     total_unique: usize,
-    top: Vec<ExternalDepUsage>,
+    items: Vec<ExternalLibraryItem>,
 }
 
 #[derive(Debug, Clone, Serialize)]
-struct ExternalDepUsage {
+struct ExternalLibraryItem {
     name: String,
+    usage_count: usize,
+    repository: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct FindingsData {
+    total: usize,
+    rules: Vec<String>,
+    packages: Vec<String>,
+    items: Vec<FindingItem>,
+    counts: Vec<FindingCount>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct FindingItem {
+    package: String,
+    rule_id: String,
+    severity: String,
+    file: String,
+    line: Option<usize>,
+    message: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct FindingCount {
+    package: String,
+    rule_id: String,
     count: usize,
 }
 
-#[derive(Debug, Clone, Serialize)]
-struct PackagesData {
-    total: usize,
-    items: Vec<PackageItem>,
-}
+fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<ReportData> {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
+    let generated_at_ms: u128 = (now.as_secs() as u128) * 1000 + (now.subsec_millis() as u128);
 
-#[derive(Debug, Clone, Serialize)]
-struct PackageItem {
-    name: String,
-    path: String,
-    findings_count: usize,
-    has_findings: bool,
-}
-
-fn build_report_data(report: &AnalysisReport) -> ReportData {
-    let total_packages = report.summary.get("total_packages").copied().unwrap_or(report.packages.len());
-    let total_findings = report.summary.get("total_findings").copied().unwrap_or(report.findings.len());
-
-    let mut summary: Vec<SummaryItem> = report
-        .summary
-        .iter()
-        .filter_map(|(k, v)| Some(SummaryItem {
-            key: k.clone(),
-            value: *v,
-        }))
-        .collect();
-    summary.sort_by(|a, b| a.key.cmp(&b.key));
-
-    let source_root = common_path_prefix(report.packages.iter().map(|p| Path::new(&p.path)));
-    let source_root_str = source_root.as_ref().map(|p| p.to_string_lossy().to_string());
-
-    let mut package_has_findings: BTreeMap<String, bool> = BTreeMap::new();
-    let mut package_findings_count: BTreeMap<String, usize> = BTreeMap::new();
-    for p in &report.packages {
-        let mut cnt = 0usize;
-        for f in &report.findings {
-            if f.file.starts_with(&p.path) {
-                cnt += 1;
-            }
-        }
-        package_findings_count.insert(p.name.clone(), cnt);
-        package_has_findings.insert(p.name.clone(), cnt > 0);
-    }
-
-    let mut packages_items: Vec<PackageItem> = report
-        .packages
-        .iter()
-        .map(|p| {
-            let cnt = package_findings_count.get(&p.name).copied().unwrap_or(0);
-            PackageItem {
-                name: p.name.clone(),
-                path: p.path.clone(),
-                findings_count: cnt,
-                has_findings: cnt > 0,
-            }
-        })
-        .collect();
-    packages_items.sort_by(|a, b| {
-        b.findings_count
-            .cmp(&a.findings_count)
-            .then_with(|| a.name.cmp(&b.name))
-    });
-
-    // Group by first directory under common root.
-    let mut groups: BTreeMap<String, (usize, usize)> = BTreeMap::new();
-    if let Some(root) = &source_root {
-        for p in &report.packages {
-            let pkg_path = Path::new(&p.path);
-            let rel = pkg_path.strip_prefix(root).unwrap_or(pkg_path);
-            let group = rel
-                .components()
-                .next()
-                .map(|c| c.as_os_str().to_string_lossy().to_string())
-                .filter(|s| !s.is_empty())
-                .unwrap_or_else(|| "(root)".to_string());
-
-            let has = package_has_findings.get(&p.name).copied().unwrap_or(false) as usize;
-            let e = groups.entry(group).or_insert((0, 0));
-            e.0 += 1;
-            e.1 += has;
-        }
-    }
-
-    let mut top_groups: Vec<GroupSummary> = groups
-        .into_iter()
-        .map(|(name, (packages, packages_with_findings))| GroupSummary {
-            name,
-            packages,
-            packages_with_findings,
-        })
-        .collect();
-    top_groups.sort_by(|a, b| b.packages.cmp(&a.packages).then_with(|| a.name.cmp(&b.name)));
-    top_groups.truncate(15);
-
-    // External deps usage counts: number of workspace packages that depend on it (deduped per package).
     let workspace_names: BTreeSet<String> = report.packages.iter().map(|p| p.name.clone()).collect();
-    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+
+    let mut cpp_files = 0usize;
+    let mut python_files = 0usize;
+    let mut launch_files = 0usize;
+    let mut urdf_files = 0usize;
+    let mut xacro_files = 0usize;
+    let mut mesh_files = 0usize;
+
+    for p in &report.packages {
+        for e in WalkDir::new(&p.path).into_iter().filter_map(|r| r.ok()) {
+            if !e.file_type().is_file() {
+                continue;
+            }
+            let name = e.file_name().to_string_lossy().to_ascii_lowercase();
+            let ext = e.path().extension().and_then(|s| s.to_str()).unwrap_or("").to_ascii_lowercase();
+
+            match ext.as_str() {
+                "c" | "cc" | "cpp" | "cxx" | "h" | "hh" | "hpp" | "hxx" | "ipp" => cpp_files += 1,
+                "py" => python_files += 1,
+                "urdf" => urdf_files += 1,
+                "xacro" => xacro_files += 1,
+                "stl" | "dae" | "obj" | "ply" => mesh_files += 1,
+                _ => {}
+            }
+
+            if name.ends_with(".launch") || name.ends_with(".launch.xml") || name.ends_with(".launch.py") {
+                launch_files += 1;
+            }
+        }
+    }
+
+    // External library usage counts: number of workspace packages that depend on it (deduped per package).
+    let mut ext_counts: BTreeMap<String, usize> = BTreeMap::new();
     for p in &report.packages {
         let mut seen: BTreeSet<String> = BTreeSet::new();
         for d in &p.dependencies {
@@ -309,33 +281,84 @@ fn build_report_data(report: &AnalysisReport) -> ReportData {
                 continue;
             }
             if seen.insert(d.name.clone()) {
-                *counts.entry(d.name.clone()).or_insert(0) += 1;
+                *ext_counts.entry(d.name.clone()).or_insert(0) += 1;
             }
         }
     }
-
-    let total_unique = counts.len();
-    let mut top: Vec<ExternalDepUsage> = counts
+    let mut external_items: Vec<ExternalLibraryItem> = ext_counts
         .into_iter()
-        .map(|(name, count)| ExternalDepUsage { name, count })
+        .map(|(name, usage_count)| ExternalLibraryItem {
+            repository: config.external_repos.get(&name).cloned(),
+            name,
+            usage_count,
+        })
         .collect();
-    top.sort_by(|a, b| b.count.cmp(&a.count).then_with(|| a.name.cmp(&b.name)));
-    top.truncate(50);
+    external_items.sort_by(|a, b| b.usage_count.cmp(&a.usage_count).then_with(|| a.name.cmp(&b.name)));
 
-    ReportData {
-        summary,
-        overview: OverviewData {
-            total_packages,
-            total_findings,
-            source_root: source_root_str,
-            top_groups,
-        },
-        packages: PackagesData {
-            total: report.packages.len(),
-            items: packages_items,
-        },
-        external_deps: ExternalDepsData { total_unique, top },
+    // Findings: attach package name by path prefix.
+    let mut findings_items: Vec<FindingItem> = Vec::new();
+    let mut rule_set: BTreeSet<String> = BTreeSet::new();
+    for f in &report.findings {
+        let mut pkg = "(unknown)".to_string();
+        for p in &report.packages {
+            if f.file.starts_with(&p.path) {
+                pkg = p.name.clone();
+                break;
+            }
+        }
+
+        rule_set.insert(f.rule_id.clone());
+        findings_items.push(FindingItem {
+            package: pkg,
+            rule_id: f.rule_id.clone(),
+            severity: f.severity.clone(),
+            file: f.file.clone(),
+            line: f.line.map(|v| v as usize),
+            message: f.message.clone(),
+        });
     }
+
+    let mut rules: Vec<String> = rule_set.into_iter().collect();
+    rules.sort();
+
+    let mut packages: Vec<String> = report.packages.iter().map(|p| p.name.clone()).collect();
+    packages.sort();
+
+    let mut counts_map: BTreeMap<(String, String), usize> = BTreeMap::new();
+    for it in &findings_items {
+        *counts_map.entry((it.package.clone(), it.rule_id.clone())).or_insert(0) += 1;
+    }
+    let counts: Vec<FindingCount> = counts_map
+        .into_iter()
+        .map(|((package, rule_id), count)| FindingCount { package, rule_id, count })
+        .collect();
+
+    Ok(ReportData {
+        meta: MetaData {
+            title: "Chelonian Report".to_string(),
+            generated_at_ms,
+        },
+        package_summary: PackageSummaryData {
+            package_count: report.packages.len(),
+            cpp_files,
+            python_files,
+            launch_files,
+            urdf_files,
+            xacro_files,
+            mesh_files,
+        },
+        external_libraries: ExternalLibrariesData {
+            total_unique: external_items.len(),
+            items: external_items,
+        },
+        findings: FindingsData {
+            total: report.findings.len(),
+            rules,
+            packages,
+            items: findings_items,
+            counts,
+        },
+    })
 }
 
 fn common_path_prefix<'a, I>(paths: I) -> Option<PathBuf>

@@ -1,0 +1,29 @@
+# report.toml
+#
+# sections: セクションの表示順（縦に並ぶ順序）
+# hidden: セクションを非表示（sections に含まれていても隠せる）
+#
+# 利用可能な section id:
+# - package_summary         : パッケージ数 + ファイル数（C++/Python/launch/urdf/xacro/mesh）
+# - workspace_dependencies  : パッケージ依存（グラフ/〇×マトリクス切替）
+# - external_dependencies   : 外部ライブラリ依存（グラフ/〇×マトリクス切替）
+# - findings                : findings表示（パッケージ別/ルール別切替）
+# - findings_matrix         : 縦=パッケージ 横=findings(ルール) の件数表（クリックでソート）
+# - external_libraries      : 外部ライブラリ一覧 + repo（external_repos から補完）
+
+sections = [
+  "package_summary",
+  "workspace_dependencies",
+  "external_dependencies",
+  "findings",
+  "findings_matrix",
+  "external_libraries",
+]
+
+hidden = []
+
+# 外部ライブラリ名 -> リポジトリURL（任意）
+[external_repos]
+roscpp = "https://github.com/ros/ros_comm"
+
+
