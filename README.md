@@ -71,7 +71,49 @@ chel analyze -p ros1 -f json -o report.json /path/to/ros/workspace
 
 # 2) convert JSON to a standalone HTML file
 chel report report.json -o report.html
+
+# or: write a directory bundle (index.html + assets/) for richer UI
+chel report report.json -o results/
 ```
+
+Customize report sections (optional)
+-------------------------------
+
+When writing a directory bundle (e.g. `-o results/`), you can customize the sidebar section ordering and visibility via a TOML config:
+
+```bash
+chel report report.json -o results/ --config report.toml
+```
+
+Example `report.toml`:
+
+```toml
+# Sidebar section order
+sections = [
+	"package_summary",
+	"workspace_dependencies",
+	"external_dependencies",
+	"findings",
+	"findings_matrix",
+	"external_libraries",
+]
+
+# Hide sections by id
+hidden = []
+
+# Optional: map external library name -> repository URL
+[external_repos]
+roscpp = "https://github.com/ros/ros_comm"
+```
+
+Available section ids:
+
+- `package_summary` — package count + file counts (C++/Python/launch/urdf/xacro/mesh)
+- `workspace_dependencies` — workspace package dependencies (matrix/graph toggle)
+- `external_dependencies` — external library dependencies (matrix/graph toggle)
+- `findings` — findings views (by package / by finding)
+- `findings_matrix` — packages × findings count table (sortable)
+- `external_libraries` — external library list + repository links (from `external_repos`)
 
 Rules
 -----
