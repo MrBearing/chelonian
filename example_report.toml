@@ -1,5 +1,6 @@
 # report.toml
 #
+# title: レポートのタイトル（オプション、デフォルト: "Chelonian Report"）
 # sections: セクションの表示順（縦に並ぶ順序）
 # hidden: セクションを非表示（sections に含まれていても隠せる）
 #
@@ -10,6 +11,8 @@
 # - findings                : findings表示（パッケージ別/ルール別切替）
 # - findings_matrix         : 縦=パッケージ 横=findings(ルール) の件数表（クリックでソート）
 # - external_libraries      : 外部ライブラリ一覧 + repo（external_repos から補完）
+
+title = "Chelonian Report"
 
 sections = [
   "package_summary",

@@ -1,0 +1,25 @@
+# GitHub Pages Report Configuration
+# This configuration is used for the sample report published on GitHub Pages
+
+title = "Chelonian Analysis Report - ROS Tutorials Sample"
+
+sections = [
+  "package_summary",
+  "findings",
+  "findings_matrix",
+  "workspace_dependencies",
+  "external_dependencies",
+  "external_libraries",
+]
+
+hidden = []
+
+# External library repositories
+[external_repos]
+roscpp = "https://github.com/ros/ros_comm"
+rospy = "https://github.com/ros/ros_comm"
+std_msgs = "https://github.com/ros/std_msgs"
+geometry_msgs = "https://github.com/ros/common_msgs"
+sensor_msgs = "https://github.com/ros/common_msgs"
+nav_msgs = "https://github.com/ros/common_msgs"
+tf = "https://github.com/ros/geometry"
