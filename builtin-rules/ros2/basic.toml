@@ -1,81 +1,463 @@
 # Basic ROS2 discovery-only rules (severity = "info")
 
-[[rule]]
+[meta]
+name = "ros2_discovery"
+version = "0.2.0"
+description = "Comprehensive discovery rules for ROS2 workspaces covering nodes, composable nodes, publishers, subscribers, services, actions, launch files, and parameters"
+
+[[rules]]
 id = "ros2-cpp-include"
 name = "C++ include: rclcpp or rclcpp.hpp"
 description = "Detect inclusion of ROS2 C++ headers (rclcpp)."
 severity = "info"
+target = "cpp"
 category = "include"
 
-[rule.match]
+[rules.match]
 type = "regex"
 pattern = "rclcpp(/|\\.h|\\.hpp)"
 
-[rule.output]
+[rules.output]
 message = "Found ROS2 C++ include (rclcpp) — good candidate for ROS2 analysis."
 suggestion = "Keep track of rclcpp usage for migration and API inspection."
 effort_hours = 0.1
 
-[[rule]]
+[[rules]]
 id = "ros2-py-import"
 name = "Python import: rclpy"
 description = "Detect imports of ROS2 Python client library `rclpy`."
 severity = "info"
 category = "include"
 
-[rule.match]
+[rules.match]
 type = "regex"
 pattern = "\\brclpy\\b"
 
-[rule.output]
+[rules.output]
 message = "Found ROS2 Python import (rclpy)."
 suggestion = "Record rclpy usage to verify node lifecycle and parameter patterns."
 effort_hours = 0.1
 
-[[rule]]
+[[rules]]
 id = "ros2-ament-cmake"
 name = "CMakeLists: ament_cmake or ament_package"
 description = "Detect CMakeLists that use `ament_cmake` build type indicating ROS2 packages."
 severity = "info"
 category = "build"
 
-[rule.match]
+[rules.match]
 type = "regex"
 pattern = "ament_cmake|ament_package"
 
-[rule.output]
+[rules.output]
 message = "Found ament_cmake usage — indicates ROS2/ament package."
 suggestion = "Confirm package.xml uses ament/ament_cmake and check build exports."
 effort_hours = 0.2
 
-[[rule]]
+[[rules]]
 id = "ros2-package-xml"
 name = "package.xml: ament/format"
 description = "Detect ROS2-style package manifests (format and buildtool_depend)."
 severity = "info"
 category = "manifest"
 
-[rule.match]
+[rules.match]
 type = "regex"
 pattern = "format=\"3\"|buildtool_depend.*ament_cmake|exec_depend.*rclcpp"
 
-[rule.output]
+[rules.output]
 message = "Found ROS2-style package.xml markers."
 suggestion = "Check for ament/format=3 and ament-specific dependencies."
 effort_hours = 0.2
 
-[[rule]]
+[[rules]]
 id = "ros1-include-in-ros2"
 name = "ROS1 includes present (in ROS2 workspace)"
 description = "Detect legacy ROS1 includes (ros/ros.h, rospy) within a ROS2-style workspace."
 severity = "info"
 category = "include"
 
-[rule.match]
+[rules.match]
 type = "regex"
 pattern = "ros/ros.h|rospy|roscpp"
 
-[rule.output]
+[rules.output]
 message = "Found ROS1 include in project that otherwise looks like ROS2."
 suggestion = "Verify whether package mixes ROS1 and ROS2 code (ros1_bridge / migration)."
 effort_hours = 0.3
+
+# Node Detection Rules
+
+[[rules]]
+id = "ros2-cpp-node-creation"
+name = "C++ Node creation (rclcpp::Node)"
+description = "Detect creation of ROS2 C++ nodes using rclcpp::Node."
+severity = "info"
+target = "cpp"
+category = "node"
+
+[rules.match]
+type = "regex"
+pattern = "rclcpp::Node\\s*\\(|std::make_shared<rclcpp::Node>|rclcpp::Node::|class\\s+\\w+\\s*:\\s*public\\s+rclcpp::Node"
+
+[rules.output]
+message = "Found ROS2 C++ Node creation."
+suggestion = "Track node instances for package analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-node-creation"
+name = "Python Node creation (rclpy.create_node)"
+description = "Detect creation of ROS2 Python nodes using rclpy."
+severity = "info"
+category = "node"
+
+[rules.match]
+type = "regex"
+pattern = "rclpy\\.create_node|class\\s+\\w+\\(\\s*Node\\s*\\)|rclpy\\.node\\.Node"
+
+[rules.output]
+message = "Found ROS2 Python Node creation."
+suggestion = "Track node instances for package analysis."
+effort_hours = 0.1
+
+# Composable Node Rules
+
+[[rules]]
+id = "ros2-composable-node-cpp"
+name = "C++ Composable Node (rclcpp_components)"
+description = "Detect ROS2 C++ composable nodes using rclcpp_components."
+severity = "info"
+category = "composable-node"
+
+[rules.match]
+type = "regex"
+pattern = "rclcpp_components|RCLCPP_COMPONENTS_REGISTER_NODE|class_loader::ClassLoader"
+
+[rules.output]
+message = "Found ROS2 C++ composable node usage."
+suggestion = "Track composable node components for composition analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-composable-node-py"
+name = "Python Composable Node"
+description = "Detect ROS2 Python composable nodes."
+severity = "info"
+category = "composable-node"
+
+[rules.match]
+type = "regex"
+pattern = "rclpy_components|from\\s+rclpy\\.node\\s+import\\s+Node.*composition"
+
+[rules.output]
+message = "Found ROS2 Python composable node pattern."
+suggestion = "Track composable node components for composition analysis."
+effort_hours = 0.1
+
+# Publisher/Subscriber Rules
+
+[[rules]]
+id = "ros2-cpp-publisher"
+name = "C++ Publisher (create_publisher)"
+description = "Detect ROS2 C++ publisher creation."
+severity = "info"
+target = "cpp"
+category = "pub-sub"
+
+[rules.match]
+type = "regex"
+pattern = "create_publisher\\s*<|->create_publisher\\(|this->create_publisher"
+
+[rules.output]
+message = "Found ROS2 C++ publisher creation."
+suggestion = "Track publisher usage for topic analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-cpp-subscriber"
+name = "C++ Subscriber (create_subscription)"
+description = "Detect ROS2 C++ subscriber creation."
+severity = "info"
+target = "cpp"
+category = "pub-sub"
+
+[rules.match]
+type = "regex"
+pattern = "create_subscription\\s*<|->create_subscription\\(|this->create_subscription"
+
+[rules.output]
+message = "Found ROS2 C++ subscriber creation."
+suggestion = "Track subscriber usage for topic analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-publisher"
+name = "Python Publisher (create_publisher)"
+description = "Detect ROS2 Python publisher creation."
+severity = "info"
+category = "pub-sub"
+
+[rules.match]
+type = "regex"
+pattern = "\\.create_publisher\\(|self\\.create_publisher"
+
+[rules.output]
+message = "Found ROS2 Python publisher creation."
+suggestion = "Track publisher usage for topic analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-subscriber"
+name = "Python Subscriber (create_subscription)"
+description = "Detect ROS2 Python subscriber creation."
+severity = "info"
+category = "pub-sub"
+
+[rules.match]
+type = "regex"
+pattern = "\\.create_subscription\\(|self\\.create_subscription"
+
+[rules.output]
+message = "Found ROS2 Python subscriber creation."
+suggestion = "Track subscriber usage for topic analysis."
+effort_hours = 0.1
+
+# Service Server/Client Rules
+
+[[rules]]
+id = "ros2-cpp-service-server"
+name = "C++ Service Server (create_service)"
+description = "Detect ROS2 C++ service server creation."
+severity = "info"
+target = "cpp"
+category = "service"
+
+[rules.match]
+type = "regex"
+pattern = "create_service\\s*<|->create_service\\(|this->create_service"
+
+[rules.output]
+message = "Found ROS2 C++ service server creation."
+suggestion = "Track service server usage for service analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-cpp-service-client"
+name = "C++ Service Client (create_client)"
+description = "Detect ROS2 C++ service client creation."
+severity = "info"
+target = "cpp"
+category = "service"
+
+[rules.match]
+type = "regex"
+pattern = "create_client\\s*<|->create_client\\(|this->create_client"
+
+[rules.output]
+message = "Found ROS2 C++ service client creation."
+suggestion = "Track service client usage for service analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-service-server"
+name = "Python Service Server (create_service)"
+description = "Detect ROS2 Python service server creation."
+severity = "info"
+category = "service"
+
+[rules.match]
+type = "regex"
+pattern = "\\.create_service\\(|self\\.create_service"
+
+[rules.output]
+message = "Found ROS2 Python service server creation."
+suggestion = "Track service server usage for service analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-service-client"
+name = "Python Service Client (create_client)"
+description = "Detect ROS2 Python service client creation."
+severity = "info"
+category = "service"
+
+[rules.match]
+type = "regex"
+pattern = "\\.create_client\\(|self\\.create_client"
+
+[rules.output]
+message = "Found ROS2 Python service client creation."
+suggestion = "Track service client usage for service analysis."
+effort_hours = 0.1
+
+# Action Server/Client Rules
+
+[[rules]]
+id = "ros2-cpp-action-server"
+name = "C++ Action Server (rclcpp_action::Server)"
+description = "Detect ROS2 C++ action server creation."
+severity = "info"
+target = "cpp"
+category = "action"
+
+[rules.match]
+type = "regex"
+pattern = "rclcpp_action::Server|rclcpp_action::create_server|ActionServer\\s*<"
+
+[rules.output]
+message = "Found ROS2 C++ action server creation."
+suggestion = "Track action server usage for action analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-cpp-action-client"
+name = "C++ Action Client (rclcpp_action::Client)"
+description = "Detect ROS2 C++ action client creation."
+severity = "info"
+target = "cpp"
+category = "action"
+
+[rules.match]
+type = "regex"
+pattern = "rclcpp_action::Client|rclcpp_action::create_client|ActionClient\\s*<"
+
+[rules.output]
+message = "Found ROS2 C++ action client creation."
+suggestion = "Track action client usage for action analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-action-server"
+name = "Python Action Server (ActionServer)"
+description = "Detect ROS2 Python action server creation."
+severity = "info"
+category = "action"
+
+[rules.match]
+type = "regex"
+pattern = "rclpy\\.action\\.ActionServer|ActionServer\\("
+
+[rules.output]
+message = "Found ROS2 Python action server creation."
+suggestion = "Track action server usage for action analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-action-client"
+name = "Python Action Client (ActionClient)"
+description = "Detect ROS2 Python action client creation."
+severity = "info"
+category = "action"
+
+[rules.match]
+type = "regex"
+pattern = "rclpy\\.action\\.ActionClient|ActionClient\\("
+
+[rules.output]
+message = "Found ROS2 Python action client creation."
+suggestion = "Track action client usage for action analysis."
+effort_hours = 0.1
+
+# Launch File Rules
+
+[[rules]]
+id = "ros2-launch-python"
+name = "Python Launch File"
+description = "Detect ROS2 Python launch files (.launch.py)."
+severity = "info"
+category = "launch"
+
+[rules.match]
+type = "regex"
+pattern = "from\\s+launch|import\\s+launch|LaunchDescription|Node\\(|ExecuteProcess\\(|IncludeLaunchDescription"
+
+[rules.output]
+message = "Found ROS2 Python launch file pattern."
+suggestion = "Track launch files for launch configuration analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-launch-xml"
+name = "XML Launch File"
+description = "Detect ROS2 XML launch files (.launch.xml)."
+severity = "info"
+category = "launch"
+
+[rules.match]
+type = "regex"
+pattern = "<launch>|<node\\s|<include\\s|<param\\s"
+
+[rules.output]
+message = "Found ROS2 XML launch file pattern."
+suggestion = "Track launch files for launch configuration analysis."
+effort_hours = 0.1
+
+# Parameter Rules
+
+[[rules]]
+id = "ros2-cpp-parameter-declare"
+name = "C++ Parameter Declaration (declare_parameter)"
+description = "Detect ROS2 C++ parameter declarations."
+severity = "info"
+target = "cpp"
+category = "parameter"
+
+[rules.match]
+type = "regex"
+pattern = "declare_parameter\\(|declare_parameters\\(|this->declare_parameter"
+
+[rules.output]
+message = "Found ROS2 C++ parameter declaration."
+suggestion = "Track parameter declarations for parameter analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-cpp-parameter-get"
+name = "C++ Parameter Access (get_parameter)"
+description = "Detect ROS2 C++ parameter access."
+severity = "info"
+target = "cpp"
+category = "parameter"
+
+[rules.match]
+type = "regex"
+pattern = "get_parameter\\(|get_parameters\\(|this->get_parameter"
+
+[rules.output]
+message = "Found ROS2 C++ parameter access."
+suggestion = "Track parameter usage for parameter analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-parameter-declare"
+name = "Python Parameter Declaration (declare_parameter)"
+description = "Detect ROS2 Python parameter declarations."
+severity = "info"
+category = "parameter"
+
+[rules.match]
+type = "regex"
+pattern = "\\.declare_parameter\\(|self\\.declare_parameter"
+
+[rules.output]
+message = "Found ROS2 Python parameter declaration."
+suggestion = "Track parameter declarations for parameter analysis."
+effort_hours = 0.1
+
+[[rules]]
+id = "ros2-py-parameter-get"
+name = "Python Parameter Access (get_parameter)"
+description = "Detect ROS2 Python parameter access."
+severity = "info"
+category = "parameter"
+
+[rules.match]
+type = "regex"
+pattern = "\\.get_parameter\\(|self\\.get_parameter"
+
+[rules.output]
+message = "Found ROS2 Python parameter access."
+suggestion = "Track parameter usage for parameter analysis."
+effort_hours = 0.1
+
