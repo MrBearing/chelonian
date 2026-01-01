@@ -88,6 +88,9 @@ chel report report.json -o results/ --config report.toml
 Example `report.toml`:
 
 ```toml
+# Report title (optional, default: "Chelonian Report")
+title = "My ROS Workspace Analysis"
+
 # Sidebar section order
 sections = [
 	"package_summary",
@@ -114,6 +117,15 @@ Available section ids:
 - `findings` — findings views (by package / by finding)
 - `findings_matrix` — packages × findings count table (sortable)
 - `external_libraries` — external library list + repository links (from `external_repos`)
+
+Sample Report on GitHub Pages
+------------------------------
+
+This repository automatically generates and publishes a sample analysis report to GitHub Pages on every push to the main branch. The report analyzes the [ros_tutorials](https://github.com/ros/ros_tutorials) repository as a demonstration.
+
+**View the live report:** [https://mrbearing.github.io/chelonian/](https://mrbearing.github.io/chelonian/)
+
+The workflow configuration can be found in `.github/workflows/publish-report.yml`, and the report configuration is in `github_pages_report.toml`.
 
 Rules
 -----
