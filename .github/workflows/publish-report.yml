@@ -1,0 +1,103 @@
+name: Generate and Publish Report
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+      - name: Checkout chelonian repository
+        uses: actions/checkout@v4
+        with:
+          path: chelonian
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            chelonian/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('chelonian/Cargo.lock') }}
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Build chelonian
+        run: |
+          cd chelonian
+          cargo build --release
+          echo "$(pwd)/target/release" >> $GITHUB_PATH
+
+      - name: Checkout sample ROS workspace (ros_tutorials)
+        uses: actions/checkout@v4
+        with:
+          repository: ros/ros_tutorials
+          ref: noetic-devel
+          path: ros_tutorials
+
+      - name: Generate ROS1 analysis JSON
+        run: |
+          cd ros_tutorials
+          chel analyze --platform ros1 -f json -o ../analysis-ros1.json .
+
+      - name: Generate ROS1 HTML report
+        run: |
+          mkdir -p report_output/ros1
+          chel report analysis-ros1.json -o report_output/ros1/ --config chelonian/docs/github_pages_report.toml
+
+      - name: Checkout sample ROS2 workspace (ros2_tutorials)
+        uses: actions/checkout@v4
+        with:
+          repository: ros2/ros2_tutorials
+          ref: humble
+          path: ros2_tutorials
+
+      - name: Generate ROS2 analysis JSON
+        run: |
+          cd ros2_tutorials
+          chel analyze --platform ros2 -f json -o ../analysis-ros2.json .
+
+      - name: Generate ROS2 HTML report
+        run: |
+          mkdir -p report_output/ros2
+          chel report analysis-ros2.json -o report_output/ros2/ --config chelonian/docs/github_pages_report_ros2.toml
+
+      - name: Copy portal index.html
+        run: |
+          cp chelonian/docs/index.html report_output/index.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: report_output
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

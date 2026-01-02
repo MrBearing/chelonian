@@ -95,6 +95,8 @@ function renderHeader(reportData) {
 
   const title = meta && meta.title ? String(meta.title) : 'Chelonian Report';
   if (titleEl) titleEl.textContent = title;
+  // Also update the document title tag
+  document.title = title;
 
   const ms = meta && typeof meta.generated_at_ms === 'number' ? meta.generated_at_ms : null;
   if (generatedEl) {

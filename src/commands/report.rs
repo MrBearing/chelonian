@@ -139,6 +139,7 @@ fn escape_json_for_script_tag(json: &str) -> String {
 
 #[derive(Debug, Clone, Deserialize, Default)]
 struct ReportConfigToml {
+    title: Option<String>,
     sections: Option<Vec<String>>,
     hidden: Option<Vec<String>>,
     external_repos: Option<BTreeMap<String, String>>,
@@ -146,6 +147,7 @@ struct ReportConfigToml {
 
 #[derive(Debug, Clone, Serialize)]
 struct ReportConfig {
+    title: String,
     sections: Vec<String>,
     hidden: Vec<String>,
     external_repos: BTreeMap<String, String>,
@@ -153,6 +155,7 @@ struct ReportConfig {
 
 fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
     let defaults = ReportConfig {
+        title: "Chelonian Report".to_string(),
         sections: vec![
             "package_summary".to_string(),
             "workspace_dependencies".to_string(),
@@ -176,6 +179,7 @@ fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
         .with_context(|| format!("failed to parse config TOML: {}", path.display()))?;
 
     Ok(ReportConfig {
+        title: cfg.title.unwrap_or(defaults.title),
         sections: cfg.sections.unwrap_or(defaults.sections),
         hidden: cfg.hidden.unwrap_or_default(),
         external_repos: cfg.external_repos.unwrap_or_default(),
@@ -356,7 +360,7 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
 
     Ok(ReportData {
         meta: MetaData {
-            title: "Chelonian Report".to_string(),
+            title: config.title.clone(),
             generated_at_ms,
         },
         package_summary: PackageSummaryData {
@@ -380,36 +384,6 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
             counts,
         },
     })
-}
-
-fn common_path_prefix<'a, I>(paths: I) -> Option<PathBuf>
-where
-    I: IntoIterator<Item = &'a Path>,
-{
-    let mut iter = paths.into_iter();
-    let first = iter.next()?.components().collect::<Vec<_>>();
-    if first.is_empty() {
-        return None;
-    }
-
-    let mut prefix_len = first.len();
-    for p in iter {
-        let comps = p.components().collect::<Vec<_>>();
-        let mut i = 0usize;
-        while i < prefix_len && i < comps.len() && first[i] == comps[i] {
-            i += 1;
-        }
-        prefix_len = i;
-        if prefix_len == 0 {
-            return None;
-        }
-    }
-
-    let mut out = PathBuf::new();
-    for c in &first[..prefix_len] {
-        out.push(c.as_os_str());
-    }
-    Some(out)
 }
 
 #[derive(Debug, Clone, Serialize)]
