@@ -12,7 +12,7 @@
 # - findings_matrix         : 縦=パッケージ 横=findings(ルール) の件数表（クリックでソート）
 # - external_libraries      : 外部ライブラリ一覧 + repo（external_repos から補完）
 
-title = "Chelonian Report"
+title = "This is sample of Chelonian Report"
 
 sections = [
   "package_summary",
