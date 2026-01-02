@@ -125,7 +125,7 @@ This repository automatically generates and publishes a sample analysis report t
 
 **View the live report:** [https://mrbearing.github.io/chelonian/](https://mrbearing.github.io/chelonian/)
 
-The workflow configuration can be found in `.github/workflows/publish-report.yml`, and the report configuration is in `github_pages_report.toml`.
+The workflow configuration can be found in `.github/workflows/publish-report.yml`, and the report configurations are in `docs/github_pages_report.toml` and `docs/github_pages_report_ros2.toml`.
 
 Rules
 -----

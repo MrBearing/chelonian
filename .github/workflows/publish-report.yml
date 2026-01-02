@@ -59,15 +59,36 @@ jobs:
           ref: noetic-devel
           path: ros_tutorials
 
-      - name: Generate analysis JSON
+      - name: Generate ROS1 analysis JSON
         run: |
           cd ros_tutorials
-          chel analyze --platform ros1 -f json -o ../analysis.json .
+          chel analyze --platform ros1 -f json -o ../analysis-ros1.json .
 
-      - name: Generate HTML report
+      - name: Generate ROS1 HTML report
         run: |
-          mkdir -p report_output
-          chel report analysis.json -o report_output/ --config chelonian/github_pages_report.toml
+          mkdir -p report_output/ros1
+          chel report analysis-ros1.json -o report_output/ros1/ --config chelonian/docs/github_pages_report.toml
+
+      - name: Checkout sample ROS2 workspace (ros2_tutorials)
+        uses: actions/checkout@v4
+        with:
+          repository: ros2/ros2_tutorials
+          ref: humble
+          path: ros2_tutorials
+
+      - name: Generate ROS2 analysis JSON
+        run: |
+          cd ros2_tutorials
+          chel analyze --platform ros2 -f json -o ../analysis-ros2.json .
+
+      - name: Generate ROS2 HTML report
+        run: |
+          mkdir -p report_output/ros2
+          chel report analysis-ros2.json -o report_output/ros2/ --config chelonian/docs/github_pages_report_ros2.toml
+
+      - name: Copy portal index.html
+        run: |
+          cp chelonian/docs/index.html report_output/index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

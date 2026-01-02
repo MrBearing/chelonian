@@ -386,36 +386,6 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
     })
 }
 
-fn common_path_prefix<'a, I>(paths: I) -> Option<PathBuf>
-where
-    I: IntoIterator<Item = &'a Path>,
-{
-    let mut iter = paths.into_iter();
-    let first = iter.next()?.components().collect::<Vec<_>>();
-    if first.is_empty() {
-        return None;
-    }
-
-    let mut prefix_len = first.len();
-    for p in iter {
-        let comps = p.components().collect::<Vec<_>>();
-        let mut i = 0usize;
-        while i < prefix_len && i < comps.len() && first[i] == comps[i] {
-            i += 1;
-        }
-        prefix_len = i;
-        if prefix_len == 0 {
-            return None;
-        }
-    }
-
-    let mut out = PathBuf::new();
-    for c in &first[..prefix_len] {
-        out.push(c.as_os_str());
-    }
-    Some(out)
-}
-
 #[derive(Debug, Clone, Serialize)]
 struct GraphJson {
     nodes: Vec<GraphNode>,
