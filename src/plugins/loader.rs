@@ -73,7 +73,7 @@ fn built_in_rules(platform: Option<&str>) -> Result<Vec<Rule>> {
                 .collect::<Vec<_>>();
 
             // Keep deterministic ordering.
-            toml_files.sort_by_key(|f| f.path().to_path_buf());
+            toml_files.sort_by(|a, b| a.path().cmp(b.path()));
 
             for f in toml_files {
                 let source_name = format!("builtin-rules/{}/{}", p, f.path().file_name().and_then(|s| s.to_str()).unwrap_or("<unknown>"));
