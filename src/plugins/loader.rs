@@ -9,6 +9,11 @@ fn load_file(p: &Path) -> Result<Vec<Rule>> {
     Ok(rf.rules.unwrap_or_default())
 }
 
+fn load_rules_from_toml_str(toml_str: &str, source_name: &str) -> Result<Vec<Rule>> {
+    let rf: RulesFile = toml::from_str(toml_str).with_context(|| format!("parsing builtin rules {}", source_name))?;
+    Ok(rf.rules.unwrap_or_default())
+}
+
 pub fn load_rules_from_path(path_opt: Option<PathBuf>, platform_opt: Option<String>, include_builtin: bool) -> Result<Vec<Rule>> {
     let mut rules: Vec<Rule> = Vec::new();
 
@@ -54,22 +59,20 @@ pub fn load_rules_from_path(path_opt: Option<PathBuf>, platform_opt: Option<Stri
 fn built_in_rules(platform: Option<&str>) -> Result<Vec<Rule>> {
     let mut rules: Vec<Rule> = Vec::new();
     
-    // Load platform-specific builtin rules from builtin-rules/<platform>/
+    // Load platform-specific builtin rules.
+    // IMPORTANT: these must work regardless of the current working directory (e.g. CI, GitHub Actions).
     if let Some(p) = platform {
-        let builtin_dir = PathBuf::from(format!("builtin-rules/{}", p));
-        if builtin_dir.exists() {
-            for entry in fs::read_dir(&builtin_dir)? {
-                let e = entry?;
-                let path = e.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("toml") {
-                    if let Ok(mut rr) = load_file(&path) {
-                        rules.append(&mut rr);
-                    }
-                }
+        match p {
+            "ros1" => {
+                let txt = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/builtin-rules/ros1/basic.toml"));
+                rules.append(&mut load_rules_from_toml_str(txt, "builtin-rules/ros1/basic.toml")?);
             }
+            "ros2" => {
+                let txt = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/builtin-rules/ros2/basic.toml"));
+                rules.append(&mut load_rules_from_toml_str(txt, "builtin-rules/ros2/basic.toml")?);
+            }
+            _ => {}
         }
-    } else {
-        // No platform specified -> do not load any builtin rules.
     }
     
     // Backwards-compatibility: some tests / consumers expect legacy ids.
