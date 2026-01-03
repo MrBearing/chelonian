@@ -1,7 +1,7 @@
 # GitHub Pages Report Configuration
 # This configuration is used for the sample report published on GitHub Pages
 
-title = "Chelonian Analysis Report - ROS Tutorials Sample"
+title = "Chelonian Analysis Report - Moveit Sample"
 
 sections = [
   "package_summary",
