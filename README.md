@@ -19,61 +19,61 @@ Install (from source):
 cargo install --path . --locked
 ```
 
-After installation use `chel` from your PATH.
+After installation use `kelo` from your PATH.
 
 Analyze a workspace (text output):
 
 ```bash
-chel analyze /path/to/ros/workspace
+kelo analyze /path/to/ros/workspace
 ```
 
 Select a platform (load platform-specific builtin rules):
 
 ```bash
 # analyze with ROS1 builtin rules
-chel analyze --platform ros1 /path/to/ros/workspace
+kelo analyze --platform ros1 /path/to/ros/workspace
 
 # analyze with ROS2 builtin rules
-chel analyze --platform ros2 /path/to/ros/workspace
+kelo analyze --platform ros2 /path/to/ros/workspace
 ```
 
 JSON output:
 
 ```bash
-chel analyze -f json /path/to/ros/workspace
+kelo analyze -f json /path/to/ros/workspace
 ```
 
 Custom rules:
 
 ```bash
 # add custom rules on top of builtin rules
-chel analyze --platform ros1 --rules /path/to/custom/rules /path/to/ros/workspace
+kelo analyze --platform ros1 --rules /path/to/custom/rules /path/to/ros/workspace
 
 # load only custom rules (disable builtin)
-chel analyze --rules /path/to/custom/rules --no-builtin /path/to/ros/workspace
+kelo analyze --rules /path/to/custom/rules --no-builtin /path/to/ros/workspace
 ```
 
 List available rules:
 
 ```bash
-chel analyze --list-rules
+kelo analyze --list-rules
 
 # include builtin rules for a specific platform
-chel analyze -p ros1 --list-rules
-chel analyze -p ros2 --list-rules
+kelo analyze -p ros1 --list-rules
+kelo analyze -p ros2 --list-rules
 ```
 
 Generate a static HTML report from JSON:
 
 ```bash
 # 1) analyze and write JSON to a file
-chel analyze -p ros1 -f json -o report.json /path/to/ros/workspace
+kelo analyze -p ros1 -f json -o report.json /path/to/ros/workspace
 
 # 2) convert JSON to a standalone HTML file
-chel report report.json -o report.html
+kelo report report.json -o report.html
 
 # or: write a directory bundle (index.html + assets/) for richer UI
-chel report report.json -o results/
+kelo report report.json -o results/
 ```
 
 Customize report sections (optional)
@@ -82,7 +82,7 @@ Customize report sections (optional)
 When writing a directory bundle (e.g. `-o results/`), you can customize the sidebar section ordering and visibility via a TOML config:
 
 ```bash
-chel report report.json -o results/ --config report.toml
+kelo report report.json -o results/ --config report.toml
 ```
 
 Example `report.toml`:

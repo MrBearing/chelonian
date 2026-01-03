@@ -62,7 +62,7 @@ jobs:
       - name: Generate ROS1 analysis JSON
         run: |
           cd moveit
-          chel analyze --platform ros1 -f json -o ../analysis-ros1.json .
+          kelo analyze --platform ros1 -f json -o ../analysis-ros1.json .
 
       - name: Copy ROS1 analysis JSON into site output
         run: |
@@ -71,7 +71,7 @@ jobs:
 
       - name: Generate ROS1 HTML report
         run: |
-          chel report analysis-ros1.json -o report_output/ros1/ --config chelonian/docs/github_pages_report.toml
+          kelo report analysis-ros1.json -o report_output/ros1/ --config chelonian/docs/github_pages_report.toml
 
       - name: Checkout sample ROS2 workspace (moveit2)
         uses: actions/checkout@v4
@@ -83,7 +83,7 @@ jobs:
       - name: Generate ROS2 analysis JSON
         run: |
           cd moveit2
-          chel analyze --platform ros2 -f json -o ../analysis-ros2.json .
+          kelo analyze --platform ros2 -f json -o ../analysis-ros2.json .
 
       - name: Copy ROS2 analysis JSON into site output
         run: |
@@ -92,7 +92,7 @@ jobs:
 
       - name: Generate ROS2 HTML report
         run: |
-          chel report analysis-ros2.json -o report_output/ros2/ --config chelonian/docs/github_pages_report_ros2.toml
+          kelo report analysis-ros2.json -o report_output/ros2/ --config chelonian/docs/github_pages_report_ros2.toml
 
       - name: Copy portal index.html
         run: |

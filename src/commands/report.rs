@@ -12,7 +12,7 @@ use crate::models::AnalysisReport;
 
 #[derive(Args, Debug, Clone)]
 pub struct ReportArgs {
-    /// Input analysis JSON file (produced by `chel analyze --format json`)
+    /// Input analysis JSON file (produced by `kelo analyze --format json`)
     pub input: PathBuf,
 
     /// Output path.

@@ -11,7 +11,7 @@ keywords = ["ros", "ros2", "static-analysis", "migration", "robotics"]
 categories = ["development-tools", "command-line-utilities"]
 
 [[bin]]
-name = "chel"
+name = "kelo"
 path = "src/main.rs"
 
 [dependencies]

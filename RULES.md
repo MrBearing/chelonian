@@ -6,7 +6,7 @@ This document describes the TOML rule format used by Chelonian and the meaning o
 
 Rules are declared in TOML files. Each file may contain multiple `[[rules]]` entries. The loader reads rules from:
 
-- The path provided with `chel analyze --rules` (file or directory),
+- The path provided with `kelo analyze --rules` (file or directory),
 - `~/.config/chelonian/rules/*.toml`,
 - Bundled built-in rules.
 
