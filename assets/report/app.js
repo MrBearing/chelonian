@@ -495,6 +495,7 @@ function renderDependencyAgGrid(container, rowNames, colNames, predicate, opts) 
       headerName: 'Package',
       field: 'rowPkg',
       pinned: 'left',
+      headerClass: 'dep-row-header',
       width: pinnedRowHeaderWidth,
       minWidth: 200,
       sortable: true,
@@ -507,6 +508,7 @@ function renderDependencyAgGrid(container, rowNames, colNames, predicate, opts) 
     colDefs.push({
       headerName: colPkg,
       colId: colPkg,
+      headerClass: 'dep-col-header',
       width: 60,
       minWidth: 60,
       maxWidth: 80,
@@ -526,6 +528,14 @@ function renderDependencyAgGrid(container, rowNames, colNames, predicate, opts) 
     });
   }
 
+  // Header height: make it large enough for rotated long labels.
+  // This is a heuristic (not a precise text measurement) but avoids crushed headers.
+  const maxLabelLen = colNames.reduce((m, s) => Math.max(m, String(s || '').length), 0);
+  // Roughly: baseline + per-character contribution, clamped.
+  // With rotated column labels, the needed height scales more directly with label length.
+  // Shorten by ~100px vs the previous heuristic.
+  const headerHeight = Math.max(120, Math.min(260, -40 + Math.round(maxLabelLen * 8)));
+
   const gridOptions = {
     rowData: rows,
     columnDefs: colDefs,
@@ -533,7 +543,7 @@ function renderDependencyAgGrid(container, rowNames, colNames, predicate, opts) 
       resizable: true,
     },
     rowHeight: 22,
-    headerHeight: 44,
+    headerHeight,
     animateRows: false,
     suppressColumnVirtualisation: false,
     suppressMovableColumns: true,

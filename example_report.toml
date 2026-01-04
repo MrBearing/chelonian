@@ -32,7 +32,7 @@ hidden = []
 
 # セクションごとのパネル高さ（任意）
 [section_heights]
-workspace_dependencies = "300px"
+workspace_dependencies = "900px"
 external_dependencies = "700px"
 
 # 外部ライブラリ名 -> リポジトリURL（任意）

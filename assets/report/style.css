@@ -138,6 +138,43 @@ html, body {
   font-size: 12px;
 }
 
+/* Diagonal column headers for dependency matrices (avoid crushed long names). */
+/* Keep the scroll viewport clipped so headers behave correctly on horizontal scroll. */
+.dep-grid .ag-header-viewport {
+  overflow: hidden;
+}
+
+.dep-grid .ag-header-cell.dep-col-header {
+  overflow: visible;
+}
+
+.dep-grid .ag-header-cell.dep-col-header .ag-header-cell-label {
+  height: 100%;
+  align-items: flex-end;
+  padding-bottom: 6px;
+  overflow: visible;
+  /* AG Grid sets min-width: 0 in some themes; keep label from squashing */
+  min-width: 0;
+  position: relative;
+}
+
+.dep-grid .ag-header-cell.dep-col-header .ag-header-cell-text {
+  /* Cancel AG Grid's default ellipsis/clipping so rotated text stays readable */
+  overflow: visible;
+  text-overflow: clip;
+  max-width: none;
+  white-space: nowrap;
+
+  /* Place and rotate the label without it being constrained by the cell width */
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: inline-block;
+  line-height: 1.1;
+  transform: rotate(-80deg);
+  transform-origin: bottom left;
+}
+
 .dep-grid .ag-cell {
   font-size: 12px;
   line-height: 1.2;
