@@ -130,6 +130,49 @@ function renderSections(graph, reportData, reportConfig) {
 
   contentEl.innerHTML = '';
 
+  const SECTION_TITLES = {
+    package_summary: 'Package summary',
+    workspace_dependencies: 'Workspace package dependencies',
+    external_dependencies: 'External library dependencies',
+    findings: 'Findings',
+    findings_matrix: 'Findings matrix (packages × findings)',
+    external_libraries: 'External libraries',
+  };
+
+  function toAnchorId(sectionId) {
+    const raw = String(sectionId || '').trim();
+    const slug = raw
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+    return `section-${slug || 'unknown'}`;
+  }
+
+  // Table of contents (links to the visible sections).
+  {
+    const items = [];
+    for (const sectionId of sections) {
+      if (hidden.has(sectionId)) continue;
+      const title = SECTION_TITLES[sectionId] || `Unknown section: ${sectionId}`;
+      items.push({ id: sectionId, anchor: toAnchorId(sectionId), title });
+    }
+
+    if (items.length > 0) {
+      const list = el('ul', { class: 'toc__list' });
+      for (const it of items) {
+        list.appendChild(el('li', {}, [
+          el('a', { class: 'toc__link', href: `#${it.anchor}`, text: it.title }),
+        ]));
+      }
+      const toc = el('nav', { class: 'section toc', 'aria-label': 'Table of contents' }, [
+        el('h2', { text: 'Contents' }),
+        list,
+      ]);
+      contentEl.appendChild(toc);
+    }
+  }
+
   function applySectionHeight(sectionId, sectionEl) {
     if (!sectionEl || !sectionId) return;
     const raw = sectionHeights[sectionId];
@@ -150,30 +193,37 @@ function renderSections(graph, reportData, reportConfig) {
 
     if (sectionId === 'package_summary') {
       const s = renderPackageSummarySection(reportData.package_summary || {});
+      s.id = toAnchorId(sectionId);
       applySectionHeight(sectionId, s);
       contentEl.appendChild(s);
     } else if (sectionId === 'workspace_dependencies') {
       const s = renderWorkspaceDependenciesSection(graph);
+      s.id = toAnchorId(sectionId);
       applySectionHeight(sectionId, s);
       contentEl.appendChild(s);
     } else if (sectionId === 'external_dependencies') {
       const s = renderExternalDependenciesSection(graph);
+      s.id = toAnchorId(sectionId);
       applySectionHeight(sectionId, s);
       contentEl.appendChild(s);
     } else if (sectionId === 'findings') {
       const s = renderFindingsSection(reportData.findings || {});
+      s.id = toAnchorId(sectionId);
       applySectionHeight(sectionId, s);
       contentEl.appendChild(s);
     } else if (sectionId === 'findings_matrix') {
       const s = renderFindingsMatrixSection(reportData.findings || {});
+      s.id = toAnchorId(sectionId);
       applySectionHeight(sectionId, s);
       contentEl.appendChild(s);
     } else if (sectionId === 'external_libraries') {
       const s = renderExternalLibrariesSection(reportData.external_libraries || {});
+      s.id = toAnchorId(sectionId);
       applySectionHeight(sectionId, s);
       contentEl.appendChild(s);
     } else {
       const s = el('section', { class: 'section' });
+      s.id = toAnchorId(sectionId);
       s.appendChild(el('h2', { text: `Unknown section: ${sectionId}` }));
       applySectionHeight(sectionId, s);
       contentEl.appendChild(s);
