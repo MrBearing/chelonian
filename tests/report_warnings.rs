@@ -26,6 +26,7 @@ fn report_emits_warnings_for_ignored_section_heights_entries() {
 [section_heights]
 empty_string = ""
 whitespace_only = "   "
+invalid_css = "nope"
 ignored_bool = true
 ignored_array = ["a", "b"]
 ignored_table = { a = 1 }
@@ -70,5 +71,10 @@ ignored_table = { a = 1 }
     assert!(
         stderr.contains("ignored_table") && stderr.contains("has unsupported type"),
         "expected warning for ignored_table, got stderr: {stderr}"
+    );
+
+    assert!(
+        stderr.contains("invalid_css") && stderr.contains("looks like an invalid CSS length"),
+        "expected warning for invalid_css, got stderr: {stderr}"
     );
 }
