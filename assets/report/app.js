@@ -124,27 +124,58 @@ function renderSections(graph, reportData, reportConfig) {
       'external_libraries',
     ];
   const hidden = new Set(Array.isArray(reportConfig.hidden) ? reportConfig.hidden : []);
+  const sectionHeights = reportConfig && typeof reportConfig.section_heights === 'object' && reportConfig.section_heights
+    ? reportConfig.section_heights
+    : {};
 
   contentEl.innerHTML = '';
+
+  function applySectionHeight(sectionId, sectionEl) {
+    if (!sectionEl || !sectionId) return;
+    const raw = sectionHeights[sectionId];
+    if (raw == null) return;
+    let v = null;
+    if (typeof raw === 'string') v = raw.trim();
+    // Rust accepts both Integer and Float. Floats are rounded to an integer pixel value.
+    // JavaScript has only one numeric type (Number), so "finite number" covers both cases.
+    // Note: values emitted by the Rust report generator are expected to be strings, but we
+    // keep number support for robustness (e.g., if report-config is authored manually).
+    else if (typeof raw === 'number' && Number.isFinite(raw)) v = `${Math.round(raw)}px`;
+    if (!v) return;
+    sectionEl.style.setProperty('--section-panel-height', v);
+  }
 
   for (const sectionId of sections) {
     if (hidden.has(sectionId)) continue;
 
     if (sectionId === 'package_summary') {
-      contentEl.appendChild(renderPackageSummarySection(reportData.package_summary || {}));
+      const s = renderPackageSummarySection(reportData.package_summary || {});
+      applySectionHeight(sectionId, s);
+      contentEl.appendChild(s);
     } else if (sectionId === 'workspace_dependencies') {
-      contentEl.appendChild(renderWorkspaceDependenciesSection(graph));
+      const s = renderWorkspaceDependenciesSection(graph);
+      applySectionHeight(sectionId, s);
+      contentEl.appendChild(s);
     } else if (sectionId === 'external_dependencies') {
-      contentEl.appendChild(renderExternalDependenciesSection(graph));
+      const s = renderExternalDependenciesSection(graph);
+      applySectionHeight(sectionId, s);
+      contentEl.appendChild(s);
     } else if (sectionId === 'findings') {
-      contentEl.appendChild(renderFindingsSection(reportData.findings || {}));
+      const s = renderFindingsSection(reportData.findings || {});
+      applySectionHeight(sectionId, s);
+      contentEl.appendChild(s);
     } else if (sectionId === 'findings_matrix') {
-      contentEl.appendChild(renderFindingsMatrixSection(reportData.findings || {}));
+      const s = renderFindingsMatrixSection(reportData.findings || {});
+      applySectionHeight(sectionId, s);
+      contentEl.appendChild(s);
     } else if (sectionId === 'external_libraries') {
-      contentEl.appendChild(renderExternalLibrariesSection(reportData.external_libraries || {}));
+      const s = renderExternalLibrariesSection(reportData.external_libraries || {});
+      applySectionHeight(sectionId, s);
+      contentEl.appendChild(s);
     } else {
       const s = el('section', { class: 'section' });
       s.appendChild(el('h2', { text: `Unknown section: ${sectionId}` }));
+      applySectionHeight(sectionId, s);
       contentEl.appendChild(s);
     }
   }

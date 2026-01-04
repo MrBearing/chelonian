@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -143,6 +144,7 @@ struct ReportConfigToml {
     sections: Option<Vec<String>>,
     hidden: Option<Vec<String>>,
     external_repos: Option<BTreeMap<String, String>>,
+    section_heights: Option<BTreeMap<String, toml::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -151,6 +153,54 @@ struct ReportConfig {
     sections: Vec<String>,
     hidden: Vec<String>,
     external_repos: BTreeMap<String, String>,
+    section_heights: BTreeMap<String, String>,
+}
+
+fn is_probably_css_length(value: &str) -> bool {
+    let s = value.trim();
+    if s.is_empty() {
+        return false;
+    }
+
+    // Accept common functional length expressions.
+    // (We don't fully parse CSS; this is only best-effort validation.)
+    let lower = s.to_ascii_lowercase();
+    for p in ["calc(", "clamp(", "min(", "max(", "var("] {
+        if lower.starts_with(p) {
+            return true;
+        }
+    }
+
+    // A unitless 0 is valid for lengths in CSS.
+    if let Ok(n) = s.parse::<f64>() {
+        if n == 0.0 {
+            return true;
+        }
+    }
+
+    // A small allowlist of commonly-used CSS length units.
+    // Note: this is intentionally conservative; we warn (but still accept) unknown values.
+    const UNITS: [&str; 18] = [
+        "px", "vh", "vw", "vmin", "vmax", "dvh", "lvh", "svh", "%", "em", "rem", "ch", "ex", "cm", "mm", "in", "pt",
+        "pc",
+    ];
+
+    // Percent is special because it's a single-character unit.
+    if s.ends_with('%') {
+        let num = s[..s.len() - 1].trim();
+        return num.parse::<f64>().is_ok();
+    }
+
+    for unit in UNITS {
+        if unit == "%" {
+            continue;
+        }
+        if let Some(num) = s.strip_suffix(unit) {
+            return num.trim().parse::<f64>().is_ok();
+        }
+    }
+
+    false
 }
 
 fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
@@ -166,6 +216,7 @@ fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
         ],
         hidden: Vec::new(),
         external_repos: BTreeMap::new(),
+        section_heights: BTreeMap::new(),
     };
 
     let Some(path) = config_path else {
@@ -178,11 +229,79 @@ fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
     let cfg: ReportConfigToml = toml::from_str(&txt)
         .with_context(|| format!("failed to parse config TOML: {}", path.display()))?;
 
+    let mut section_heights: BTreeMap<String, String> = BTreeMap::new();
+    if let Some(raw) = cfg.section_heights {
+        for (k, v) in raw {
+            let s = match v {
+                toml::Value::String(x) => x,
+                toml::Value::Integer(n) => format!("{}px", n),
+                // Treat numeric values as pixels. For floats, round to an integer pixel value
+                // to avoid scientific notation (and keep output predictable in CSS).
+                toml::Value::Float(f) => {
+                    if !f.is_finite() {
+                        eprintln!(
+                            "warning: section_heights entry for '{}' in config '{}' is not finite and will be ignored",
+                            k,
+                            path.display()
+                        );
+                        continue;
+                    }
+
+                    let rounded = f.round();
+                    if rounded < (i64::MIN as f64) || rounded > (i64::MAX as f64) {
+                        eprintln!(
+                            "warning: section_heights entry for '{}' in config '{}' is out of range and will be ignored",
+                            k,
+                            path.display()
+                        );
+                        continue;
+                    }
+
+                    let px = rounded as i64;
+                    format!("{}px", px)
+                }
+                // Intentionally ignore unsupported TOML types (bool/array/table/datetime/...)
+                // to keep the config forgiving and forward-compatible.
+                other => {
+                    eprintln!(
+                        "warning: section_heights entry for '{}' in config '{}' has unsupported type '{}' and will be ignored",
+                        k,
+                        path.display(),
+                        other.type_str()
+                    );
+                    continue;
+                }
+            };
+
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                eprintln!(
+                    "warning: section_heights entry for '{}' in config '{}' is empty after trimming and will be ignored",
+                    k,
+                    path.display()
+                );
+                continue;
+            }
+
+            if !is_probably_css_length(trimmed) {
+                eprintln!(
+                    "warning: section_heights entry for '{}' in config '{}' looks like an invalid CSS length: '{}' (examples: '700px', '60vh')",
+                    k,
+                    path.display(),
+                    trimmed
+                );
+            }
+
+            section_heights.insert(k, trimmed.to_string());
+        }
+    }
+
     Ok(ReportConfig {
         title: cfg.title.unwrap_or(defaults.title),
         sections: cfg.sections.unwrap_or(defaults.sections),
         hidden: cfg.hidden.unwrap_or_default(),
         external_repos: cfg.external_repos.unwrap_or_default(),
+        section_heights,
     })
 }
 

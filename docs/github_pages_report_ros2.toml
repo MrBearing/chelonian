@@ -13,6 +13,11 @@ sections = [
 
 hidden = []
 
+# Per-section panel height override (graph/matrix panels)
+[section_heights]
+workspace_dependencies = "700px"
+external_dependencies = "700px"
+
 # External library repositories (best-effort)
 [external_repos]
 rclcpp = "https://github.com/ros2/rclcpp"
