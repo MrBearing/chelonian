@@ -290,6 +290,7 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
             html[open_tag_end + 1..close_pos].trim().to_string()
     }
 
+
     #[test]
     #[should_panic(expected = "expected embedded json element id")]
     fn extract_embedded_json_panics_when_element_id_missing() {
@@ -350,8 +351,10 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
 [section_heights]
 workspace_dependencies = 666
 external_dependencies = "55vh"
-rounded_float = 123.45
+rounded_float = 123.6
 invalid_css = "nope"
+empty_string = ""
+whitespace_only = "   "
 ignored_bool = true
 ignored_array = ["a", "b"]
 ignored_table = { a = 1 }
@@ -385,13 +388,15 @@ ignored_table = { a = 1 }
             );
             assert_eq!(
                     heights.get("rounded_float").and_then(|x| x.as_str()),
-                    Some("123px")
+                    Some("124px")
             );
             assert_eq!(
                     heights.get("invalid_css").and_then(|x| x.as_str()),
                     Some("nope")
             );
 
+            assert!(heights.get("empty_string").is_none());
+            assert!(heights.get("whitespace_only").is_none());
             assert!(heights.get("ignored_bool").is_none());
             assert!(heights.get("ignored_array").is_none());
             assert!(heights.get("ignored_table").is_none());
