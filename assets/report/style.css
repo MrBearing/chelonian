@@ -62,9 +62,15 @@ html, body {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: block;
+}
+
+.toc__list li {
+  margin: 0 0 6px;
+}
+
+.toc__list li:last-child {
+  margin-bottom: 0;
 }
 
 .toc__link {
