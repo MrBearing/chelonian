@@ -11,6 +11,9 @@
 # - findings                : findings表示（パッケージ別/ルール別切替）
 # - findings_matrix         : 縦=パッケージ 横=findings(ルール) の件数表（クリックでソート）
 # - external_libraries      : 外部ライブラリ一覧 + repo（external_repos から補完）
+#
+# section_heights: セクションごとに「グラフ/マトリクスのパネル高さ」を上書き（任意）
+# - 値は CSS の長さ（例: "700px", "60vh"）
 
 title = "This is sample of Chelonian Report"
 
@@ -25,6 +28,11 @@ sections = [
 ]
 
 hidden = []
+
+# セクションごとのパネル高さ（任意）
+[section_heights]
+workspace_dependencies = "300px"
+external_dependencies = "700px"
 
 # 外部ライブラリ名 -> リポジトリURL（任意）
 [external_repos]

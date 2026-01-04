@@ -143,6 +143,7 @@ struct ReportConfigToml {
     sections: Option<Vec<String>>,
     hidden: Option<Vec<String>>,
     external_repos: Option<BTreeMap<String, String>>,
+    section_heights: Option<BTreeMap<String, toml::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -151,6 +152,7 @@ struct ReportConfig {
     sections: Vec<String>,
     hidden: Vec<String>,
     external_repos: BTreeMap<String, String>,
+    section_heights: BTreeMap<String, String>,
 }
 
 fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
@@ -166,6 +168,7 @@ fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
         ],
         hidden: Vec::new(),
         external_repos: BTreeMap::new(),
+        section_heights: BTreeMap::new(),
     };
 
     let Some(path) = config_path else {
@@ -178,11 +181,29 @@ fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
     let cfg: ReportConfigToml = toml::from_str(&txt)
         .with_context(|| format!("failed to parse config TOML: {}", path.display()))?;
 
+    let mut section_heights: BTreeMap<String, String> = BTreeMap::new();
+    if let Some(raw) = cfg.section_heights {
+        for (k, v) in raw {
+            let s = match v {
+                toml::Value::String(x) => x,
+                toml::Value::Integer(n) => format!("{}px", n),
+                toml::Value::Float(f) => format!("{}px", f),
+                _ => continue,
+            };
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            section_heights.insert(k, trimmed.to_string());
+        }
+    }
+
     Ok(ReportConfig {
         title: cfg.title.unwrap_or(defaults.title),
         sections: cfg.sections.unwrap_or(defaults.sections),
         hidden: cfg.hidden.unwrap_or_default(),
         external_repos: cfg.external_repos.unwrap_or_default(),
+        section_heights,
     })
 }
 

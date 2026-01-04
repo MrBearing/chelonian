@@ -104,6 +104,12 @@ sections = [
 # Hide sections by id
 hidden = []
 
+# Optional: per-section panel height override (graph/matrix panels)
+# Values are CSS lengths like "700px" or "60vh".
+[section_heights]
+workspace_dependencies = "700px"
+external_dependencies = "700px"
+
 # Optional: map external library name -> repository URL
 [external_repos]
 roscpp = "https://github.com/ros/ros_comm"
