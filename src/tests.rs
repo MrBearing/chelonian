@@ -284,6 +284,28 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
     }
 
     #[test]
+    #[should_panic(expected = "expected embedded json element id")]
+    fn extract_embedded_json_panics_when_element_id_missing() {
+            let html = r#"<html><body><script id="other">{"a":1}</script></body></html>"#;
+            let _ = extract_embedded_json(html, "report-config");
+    }
+
+    #[test]
+    #[should_panic(expected = "expected </script>")]
+    fn extract_embedded_json_panics_when_closing_tag_missing() {
+            let html = r#"<html><body><script id="report-config">{"a":1}"#;
+            let _ = extract_embedded_json(html, "report-config");
+    }
+
+    #[test]
+    #[should_panic(expected = "expected > after id")]
+    fn extract_embedded_json_panics_when_open_tag_malformed() {
+            // Contains id="report-config" but no '>' following it.
+            let html = r#"<script id="report-config""#;
+            let _ = extract_embedded_json(html, "report-config");
+    }
+
+    #[test]
     fn report_command_embeds_section_heights() {
             let td = tempdir().expect("tempdir");
             let base = td.path();
@@ -321,6 +343,9 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
 [section_heights]
 workspace_dependencies = 666
 external_dependencies = "55vh"
+ignored_bool = true
+ignored_array = ["a", "b"]
+ignored_table = { a = 1 }
 "#,
             )
             .expect("write report.toml");
@@ -349,5 +374,9 @@ external_dependencies = "55vh"
                     heights.get("external_dependencies").and_then(|x| x.as_str()),
                     Some("55vh")
             );
+
+            assert!(heights.get("ignored_bool").is_none());
+            assert!(heights.get("ignored_array").is_none());
+            assert!(heights.get("ignored_table").is_none());
     }
 }

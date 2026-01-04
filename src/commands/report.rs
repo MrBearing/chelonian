@@ -188,12 +188,29 @@ fn load_report_config(config_path: Option<&Path>) -> Result<ReportConfig> {
                 toml::Value::String(x) => x,
                 toml::Value::Integer(n) => format!("{}px", n),
                 toml::Value::Float(f) => format!("{}px", f),
-                _ => continue,
+                // Intentionally ignore unsupported TOML types (bool/array/table/datetime/...)
+                // to keep the config forgiving and forward-compatible.
+                other => {
+                    eprintln!(
+                        "warning: section_heights entry for '{}' in config '{}' has unsupported type '{}' and will be ignored",
+                        k,
+                        path.display(),
+                        other.type_str()
+                    );
+                    continue;
+                }
             };
+
             let trimmed = s.trim();
             if trimmed.is_empty() {
+                eprintln!(
+                    "warning: section_heights entry for '{}' in config '{}' is empty after trimming and will be ignored",
+                    k,
+                    path.display()
+                );
                 continue;
             }
+
             section_heights.insert(k, trimmed.to_string());
         }
     }
