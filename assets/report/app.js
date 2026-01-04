@@ -532,7 +532,7 @@ function renderDependencyAgGrid(container, rowNames, colNames, predicate, opts) 
   // This is a heuristic (not a precise text measurement) but avoids crushed headers.
   const maxLabelLen = colNames.reduce((m, s) => Math.max(m, String(s || '').length), 0);
   // Roughly: baseline + per-character contribution, clamped.
-  // With -90deg rotation, the needed height scales more directly with label length.
+  // With rotated column labels, the needed height scales more directly with label length.
   // Shorten by ~100px vs the previous heuristic.
   const headerHeight = Math.max(120, Math.min(260, -40 + Math.round(maxLabelLen * 8)));
 
