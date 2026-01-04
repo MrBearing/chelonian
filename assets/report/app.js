@@ -165,7 +165,7 @@ function renderSections(graph, reportData, reportConfig) {
           el('a', { class: 'toc__link', href: `#${it.anchor}`, text: it.title }),
         ]));
       }
-      const toc = el('nav', { class: 'section toc' }, [
+      const toc = el('nav', { class: 'section toc', 'aria-label': 'Table of contents' }, [
         el('h2', { text: 'Contents' }),
         list,
       ]);
