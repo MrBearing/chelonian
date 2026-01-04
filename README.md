@@ -106,8 +106,9 @@ hidden = []
 
 # Optional: per-section panel height override (graph/matrix panels)
 # Values are CSS lengths like "700px" or "60vh".
-# - String / integer / float are supported.
+# - String / integer / float are supported (floats are rounded to integer px).
 # - Other TOML value types (bool/array/table/datetime/...) are ignored.
+# - Strings are best-effort validated; suspicious values may emit a warning.
 [section_heights]
 workspace_dependencies = "700px"
 external_dependencies = "700px"

@@ -269,7 +269,14 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
             assert!(has_dep_type, "expected dep_type on edges");
     }
 
-    fn extract_embedded_json(html: &str, element_id: &str) -> String {
+        /// Test helper: extract the embedded JSON payload from a `<script>` element by id.
+        ///
+        /// The report generator embeds JSON blobs (e.g. `report-data`, `report-config`) into
+        /// `<script id="...">...</script>` tags. These tests use this helper to keep assertions
+        /// focused on the embedded payload.
+        ///
+        /// Panics on malformed HTML because tests expect a well-formed report output.
+        fn extract_embedded_json(html: &str, element_id: &str) -> String {
             let needle = format!("id=\"{}\"", element_id);
             let id_pos = html.find(&needle).expect("expected embedded json element id");
 
@@ -343,6 +350,8 @@ suggestion = "#include <rclcpp/rclcpp.hpp>"
 [section_heights]
 workspace_dependencies = 666
 external_dependencies = "55vh"
+rounded_float = 123.45
+invalid_css = "nope"
 ignored_bool = true
 ignored_array = ["a", "b"]
 ignored_table = { a = 1 }
@@ -373,6 +382,14 @@ ignored_table = { a = 1 }
             assert_eq!(
                     heights.get("external_dependencies").and_then(|x| x.as_str()),
                     Some("55vh")
+            );
+            assert_eq!(
+                    heights.get("rounded_float").and_then(|x| x.as_str()),
+                    Some("123px")
+            );
+            assert_eq!(
+                    heights.get("invalid_css").and_then(|x| x.as_str()),
+                    Some("nope")
             );
 
             assert!(heights.get("ignored_bool").is_none());

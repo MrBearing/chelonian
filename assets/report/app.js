@@ -136,11 +136,11 @@ function renderSections(graph, reportData, reportConfig) {
     if (raw == null) return;
     let v = null;
     if (typeof raw === 'string') v = raw.trim();
-    // Rust accepts both Integer and Float and converts them to "<n>px".
+    // Rust accepts both Integer and Float. Floats are rounded to an integer pixel value.
     // JavaScript has only one numeric type (Number), so "finite number" covers both cases.
     // Note: values emitted by the Rust report generator are expected to be strings, but we
     // keep number support for robustness (e.g., if report-config is authored manually).
-    else if (typeof raw === 'number' && Number.isFinite(raw)) v = `${raw}px`;
+    else if (typeof raw === 'number' && Number.isFinite(raw)) v = `${Math.round(raw)}px`;
     if (!v) return;
     sectionEl.style.setProperty('--section-panel-height', v);
   }
