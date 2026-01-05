@@ -74,6 +74,18 @@ kelo report report.json -o report.html
 
 # or: write a directory bundle (index.html + assets/) for richer UI
 kelo report report.json -o results/
+
+Analyze and generate a report in one step:
+
+```bash
+# official form
+kelo run /path/to/ros/workspace -p ros1 -o results/ --config report.toml
+
+# shorthand (equivalent to `kelo run`)
+kelo /path/to/ros/workspace -p ros1 -o results/ --config report.toml
+```
+
+`kelo run` uses the same `--output/-o` and `--config` option names as `kelo report`.
 ```
 
 Customize report sections (optional)
