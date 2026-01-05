@@ -60,14 +60,21 @@ pub fn run(args: ReportArgs) -> Result<()> {
 
 fn looks_like_html_file(p: &Path) -> bool {
     if p.exists() {
-        return p.is_file() && p.extension().and_then(|s| s.to_str()).is_some_and(|e| e.eq_ignore_ascii_case("html"));
+        return p.is_file()
+            && p.extension()
+                .and_then(|s| s.to_str())
+                .is_some_and(|e| e.eq_ignore_ascii_case("html"));
     }
     p.extension()
         .and_then(|s| s.to_str())
         .is_some_and(|e| e.eq_ignore_ascii_case("html"))
 }
 
-fn write_results_bundle(out_dir: &Path, report: &AnalysisReport, config: &ReportConfig) -> Result<()> {
+fn write_results_bundle(
+    out_dir: &Path,
+    report: &AnalysisReport,
+    config: &ReportConfig,
+) -> Result<()> {
     fs::create_dir_all(out_dir)
         .with_context(|| format!("failed to create output dir: {}", out_dir.display()))?;
 
@@ -109,25 +116,49 @@ fn write_results_bundle(out_dir: &Path, report: &AnalysisReport, config: &Report
         .with_context(|| format!("failed to write {}", assets_dir.join("style.css").display()))?;
     fs::write(assets_dir.join("app.js"), APP_JS)
         .with_context(|| format!("failed to write {}", assets_dir.join("app.js").display()))?;
-    fs::write(assets_dir.join("cytoscape.min.js"), CYTO_JS)
-        .with_context(|| format!("failed to write {}", assets_dir.join("cytoscape.min.js").display()))?;
+    fs::write(assets_dir.join("cytoscape.min.js"), CYTO_JS).with_context(|| {
+        format!(
+            "failed to write {}",
+            assets_dir.join("cytoscape.min.js").display()
+        )
+    })?;
 
-    fs::write(assets_dir.join("ag-grid-community.min.js"), AG_GRID_JS)
-        .with_context(|| format!("failed to write {}", assets_dir.join("ag-grid-community.min.js").display()))?;
-    fs::write(assets_dir.join("ag-grid.css"), AG_GRID_CSS)
-        .with_context(|| format!("failed to write {}", assets_dir.join("ag-grid.css").display()))?;
-    fs::write(assets_dir.join("ag-theme-alpine.css"), AG_GRID_THEME_CSS)
-        .with_context(|| format!("failed to write {}", assets_dir.join("ag-theme-alpine.css").display()))?;
+    fs::write(assets_dir.join("ag-grid-community.min.js"), AG_GRID_JS).with_context(|| {
+        format!(
+            "failed to write {}",
+            assets_dir.join("ag-grid-community.min.js").display()
+        )
+    })?;
+    fs::write(assets_dir.join("ag-grid.css"), AG_GRID_CSS).with_context(|| {
+        format!(
+            "failed to write {}",
+            assets_dir.join("ag-grid.css").display()
+        )
+    })?;
+    fs::write(assets_dir.join("ag-theme-alpine.css"), AG_GRID_THEME_CSS).with_context(|| {
+        format!(
+            "failed to write {}",
+            assets_dir.join("ag-theme-alpine.css").display()
+        )
+    })?;
 
-    fs::write(assets_dir.join("graph.json"), format!("{}\n", graph_json))
-        .with_context(|| format!("failed to write {}", assets_dir.join("graph.json").display()))?;
+    fs::write(assets_dir.join("graph.json"), format!("{}\n", graph_json)).with_context(|| {
+        format!(
+            "failed to write {}",
+            assets_dir.join("graph.json").display()
+        )
+    })?;
 
     let notices = format!(
         "This report bundle includes third-party software.\n\n- cytoscape.js v3.30.2\n\n{}\n\n- AG Grid Community v32.3.4\n\n{}\n",
         CYTO_LICENSE, AG_GRID_LICENSE
     );
-    fs::write(out_dir.join("THIRD_PARTY_NOTICES.txt"), notices)
-        .with_context(|| format!("failed to write {}", out_dir.join("THIRD_PARTY_NOTICES.txt").display()))?;
+    fs::write(out_dir.join("THIRD_PARTY_NOTICES.txt"), notices).with_context(|| {
+        format!(
+            "failed to write {}",
+            out_dir.join("THIRD_PARTY_NOTICES.txt").display()
+        )
+    })?;
 
     Ok(())
 }
@@ -181,14 +212,13 @@ fn is_probably_css_length(value: &str) -> bool {
     // A small allowlist of commonly-used CSS length units.
     // Note: this is intentionally conservative; we warn (but still accept) unknown values.
     const UNITS: [&str; 18] = [
-        "px", "vh", "vw", "vmin", "vmax", "dvh", "lvh", "svh", "%", "em", "rem", "ch", "ex", "cm", "mm", "in", "pt",
-        "pc",
+        "px", "vh", "vw", "vmin", "vmax", "dvh", "lvh", "svh", "%", "em", "rem", "ch", "ex", "cm",
+        "mm", "in", "pt", "pc",
     ];
 
     // Percent is special because it's a single-character unit.
-    if s.ends_with('%') {
-        let num = s[..s.len() - 1].trim();
-        return num.parse::<f64>().is_ok();
+    if let Some(num) = s.strip_suffix('%') {
+        return num.trim().parse::<f64>().is_ok();
     }
 
     for unit in UNITS {
@@ -375,7 +405,8 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
         .unwrap_or_default();
     let generated_at_ms: u128 = (now.as_secs() as u128) * 1000 + (now.subsec_millis() as u128);
 
-    let workspace_names: BTreeSet<String> = report.packages.iter().map(|p| p.name.clone()).collect();
+    let workspace_names: BTreeSet<String> =
+        report.packages.iter().map(|p| p.name.clone()).collect();
 
     let mut cpp_files = 0usize;
     let mut python_files = 0usize;
@@ -390,7 +421,12 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
                 continue;
             }
             let name = e.file_name().to_string_lossy().to_ascii_lowercase();
-            let ext = e.path().extension().and_then(|s| s.to_str()).unwrap_or("").to_ascii_lowercase();
+            let ext = e
+                .path()
+                .extension()
+                .and_then(|s| s.to_str())
+                .unwrap_or("")
+                .to_ascii_lowercase();
 
             match ext.as_str() {
                 "c" | "cc" | "cpp" | "cxx" | "h" | "hh" | "hpp" | "hxx" | "ipp" => cpp_files += 1,
@@ -401,7 +437,10 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
                 _ => {}
             }
 
-            if name.ends_with(".launch") || name.ends_with(".launch.xml") || name.ends_with(".launch.py") {
+            if name.ends_with(".launch")
+                || name.ends_with(".launch.xml")
+                || name.ends_with(".launch.py")
+            {
                 launch_files += 1;
             }
         }
@@ -428,7 +467,11 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
             usage_count,
         })
         .collect();
-    external_items.sort_by(|a, b| b.usage_count.cmp(&a.usage_count).then_with(|| a.name.cmp(&b.name)));
+    external_items.sort_by(|a, b| {
+        b.usage_count
+            .cmp(&a.usage_count)
+            .then_with(|| a.name.cmp(&b.name))
+    });
 
     // Findings: attach package name by path prefix.
     // Sort packages by path length (longest first) to match most specific package.
@@ -457,7 +500,7 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
             rule_id: f.rule_id.clone(),
             severity: f.severity.clone(),
             file: f.file.clone(),
-            line: f.line.map(|v| v as usize),
+            line: f.line,
             message: f.message.clone(),
         });
     }
@@ -470,11 +513,17 @@ fn build_report_data(report: &AnalysisReport, config: &ReportConfig) -> Result<R
 
     let mut counts_map: BTreeMap<(String, String), usize> = BTreeMap::new();
     for it in &findings_items {
-        *counts_map.entry((it.package.clone(), it.rule_id.clone())).or_insert(0) += 1;
+        *counts_map
+            .entry((it.package.clone(), it.rule_id.clone()))
+            .or_insert(0) += 1;
     }
     let counts: Vec<FindingCount> = counts_map
         .into_iter()
-        .map(|((package, rule_id), count)| FindingCount { package, rule_id, count })
+        .map(|((package, rule_id), count)| FindingCount {
+            package,
+            rule_id,
+            count,
+        })
         .collect();
 
     Ok(ReportData {
@@ -530,16 +579,14 @@ fn build_graph_json(report: &AnalysisReport) -> GraphJson {
     // Use stable ordering for deterministic output.
     let mut nodes: BTreeMap<String, GraphNode> = BTreeMap::new();
 
-    let workspace_names: BTreeSet<String> = report.packages.iter().map(|p| p.name.clone()).collect();
+    let workspace_names: BTreeSet<String> =
+        report.packages.iter().map(|p| p.name.clone()).collect();
 
     // Precompute which packages have findings by path prefix.
     let mut has_findings: BTreeMap<String, bool> = BTreeMap::new();
     for p in &report.packages {
         let pfx = p.path.clone();
-        let found = report
-            .findings
-            .iter()
-            .any(|f| f.file.starts_with(&pfx));
+        let found = report.findings.iter().any(|f| f.file.starts_with(&pfx));
         has_findings.insert(p.name.clone(), found);
     }
 
@@ -559,11 +606,7 @@ fn build_graph_json(report: &AnalysisReport) -> GraphJson {
     for p in &report.packages {
         for d in &p.dependencies {
             let target = d.name.clone();
-            let dep_type = d
-                .kind
-                .as_deref()
-                .unwrap_or("build")
-                .to_string();
+            let dep_type = d.kind.as_deref().unwrap_or("build").to_string();
 
             if !workspace_names.contains(&target) {
                 nodes.entry(target.clone()).or_insert(GraphNode {
@@ -598,7 +641,11 @@ fn build_graph_json(report: &AnalysisReport) -> GraphJson {
 
 fn render_html(report: &AnalysisReport) -> String {
     let total_packages = report.summary.get("total_packages").copied().unwrap_or(0);
-    let total_findings = report.summary.get("total_findings").copied().unwrap_or(report.findings.len());
+    let total_findings = report
+        .summary
+        .get("total_findings")
+        .copied()
+        .unwrap_or(report.findings.len());
 
     let mut out = String::new();
     out.push_str("<!doctype html>\n<html lang=\"en\">\n<head>\n");
@@ -630,10 +677,7 @@ fn render_html(report: &AnalysisReport) -> String {
         out.push_str(&format!("<td>{}</td>", escape_html(&f.message)));
         out.push_str(&format!(
             "<td>{}</td>",
-            f.suggestion
-                .as_deref()
-                .map(escape_html)
-                .unwrap_or_default()
+            f.suggestion.as_deref().map(escape_html).unwrap_or_default()
         ));
         out.push_str("</tr>\n");
     }

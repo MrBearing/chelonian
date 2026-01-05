@@ -1,10 +1,10 @@
-mod models;
-mod parsers;
-mod scanner;
 mod analyzer;
-mod output;
-mod plugins;
 mod commands;
+mod models;
+mod output;
+mod parsers;
+mod plugins;
+mod scanner;
 
 use clap::{Parser, Subcommand};
 use std::ffi::OsString;

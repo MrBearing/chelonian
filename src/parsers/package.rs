@@ -27,7 +27,11 @@ pub fn parse_package_xml(path: &str) -> Result<Package> {
         match child.tag_name().name() {
             "name" => pkg.name = child.text().unwrap_or_default().to_string(),
             "version" => pkg.version = child.text().map(|s| s.to_string()),
-            name if name.ends_with("depend") || name == "build_depend" || name == "exec_depend" || name == "depend" => {
+            name if name.ends_with("depend")
+                || name == "build_depend"
+                || name == "exec_depend"
+                || name == "depend" =>
+            {
                 if let Some(dep) = child.text() {
                     pkg.dependencies.push(Dependency {
                         name: dep.to_string(),
