@@ -1,23 +1,30 @@
+use crate::plugins::rule::{Rule, RulesFile};
 use anyhow::{Context, Result};
 use include_dir::{include_dir, Dir};
 use std::fs;
 use std::path::{Path, PathBuf};
-use crate::plugins::rule::{Rule, RulesFile};
 
 static BUILTIN_RULES_DIR: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/builtin-rules");
 
 fn load_file(p: &Path) -> Result<Vec<Rule>> {
-    let txt = fs::read_to_string(p).with_context(|| format!("reading rule file {}", p.display()))?;
-    let rf: RulesFile = toml::from_str(&txt).with_context(|| format!("parsing toml {}", p.display()))?;
+    let txt =
+        fs::read_to_string(p).with_context(|| format!("reading rule file {}", p.display()))?;
+    let rf: RulesFile =
+        toml::from_str(&txt).with_context(|| format!("parsing toml {}", p.display()))?;
     Ok(rf.rules.unwrap_or_default())
 }
 
 fn load_rules_from_toml_str(toml_str: &str, source_name: &str) -> Result<Vec<Rule>> {
-    let rf: RulesFile = toml::from_str(toml_str).with_context(|| format!("parsing builtin rules {}", source_name))?;
+    let rf: RulesFile = toml::from_str(toml_str)
+        .with_context(|| format!("parsing builtin rules {}", source_name))?;
     Ok(rf.rules.unwrap_or_default())
 }
 
-pub fn load_rules_from_path(path_opt: Option<PathBuf>, platform_opt: Option<String>, include_builtin: bool) -> Result<Vec<Rule>> {
+pub fn load_rules_from_path(
+    path_opt: Option<PathBuf>,
+    platform_opt: Option<String>,
+    include_builtin: bool,
+) -> Result<Vec<Rule>> {
     let mut rules: Vec<Rule> = Vec::new();
 
     // 1. built-in (loaded first, user rules add on top)
@@ -61,7 +68,7 @@ pub fn load_rules_from_path(path_opt: Option<PathBuf>, platform_opt: Option<Stri
 
 fn built_in_rules(platform: Option<&str>) -> Result<Vec<Rule>> {
     let mut rules: Vec<Rule> = Vec::new();
-    
+
     // Load platform-specific builtin rules.
     // IMPORTANT: must work regardless of the current working directory (e.g. CI, GitHub Actions).
     // Also: do not hardcode filenames; load all *.toml under builtin-rules/<platform>/.
@@ -76,7 +83,14 @@ fn built_in_rules(platform: Option<&str>) -> Result<Vec<Rule>> {
             toml_files.sort_by(|a, b| a.path().cmp(b.path()));
 
             for f in toml_files {
-                let source_name = format!("builtin-rules/{}/{}", p, f.path().file_name().and_then(|s| s.to_str()).unwrap_or("<unknown>"));
+                let source_name = format!(
+                    "builtin-rules/{}/{}",
+                    p,
+                    f.path()
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("<unknown>")
+                );
                 let txt = f
                     .contents_utf8()
                     .with_context(|| format!("reading builtin rules {}", source_name))?;
@@ -84,7 +98,7 @@ fn built_in_rules(platform: Option<&str>) -> Result<Vec<Rule>> {
             }
         }
     }
-    
+
     // Backwards-compatibility: some tests / consumers expect legacy ids.
     // Ensure a legacy id `ros1-dep-roscpp` exists if a roscpp dependency rule is present.
     let mut extra: Vec<Rule> = Vec::new();
@@ -134,7 +148,10 @@ message = "found foo"
     fn load_rules_from_toml_str_rejects_invalid_toml() {
         let err = load_rules_from_toml_str("this is not toml", "inline").unwrap_err();
         let msg = format!("{err:#}");
-        assert!(msg.to_lowercase().contains("parsing"), "unexpected error: {msg}");
+        assert!(
+            msg.to_lowercase().contains("parsing"),
+            "unexpected error: {msg}"
+        );
     }
 
     #[test]

@@ -40,15 +40,25 @@ pub fn scan_workspace(path: &str) -> ScanResult {
                 } else if name == "CMakeLists.txt" {
                     if let Some(parent) = p.parent() {
                         match parse_cmake_lists(p.to_str().unwrap_or_default()) {
-                            Ok(info) => { result.cmake_map.insert(parent.to_string_lossy().to_string(), info); }
+                            Ok(info) => {
+                                result
+                                    .cmake_map
+                                    .insert(parent.to_string_lossy().to_string(), info);
+                            }
                             Err(e) => eprintln!("warning: failed to parse {}: {}", p.display(), e),
                         }
                     }
-                } else if name.ends_with(".cpp") || name.ends_with(".cc") || name.ends_with(".hpp") || name.ends_with(".h") {
+                } else if name.ends_with(".cpp")
+                    || name.ends_with(".cc")
+                    || name.ends_with(".hpp")
+                    || name.ends_with(".h")
+                {
                     match parse_cpp_file(p.to_str().unwrap_or_default()) {
                         Ok(analysis) => {
                             // parse_cpp_file now stores full file text in analysis.full_text
-                            result.cpp_map.insert(p.to_string_lossy().to_string(), analysis);
+                            result
+                                .cpp_map
+                                .insert(p.to_string_lossy().to_string(), analysis);
                         }
                         Err(e) => eprintln!("warning: failed to parse {}: {}", p.display(), e),
                     }

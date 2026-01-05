@@ -1,8 +1,8 @@
+use crate::models::Finding;
 use crate::plugins::rule::Rule;
 use crate::scanner::ScanResult;
-use crate::models::Finding;
-use regex::Regex;
 use glob::Pattern;
+use regex::Regex;
 
 pub fn apply_rules(scan: &ScanResult, rules: &[Rule]) -> Vec<Finding> {
     let mut findings: Vec<Finding> = Vec::new();
@@ -14,17 +14,25 @@ pub fn apply_rules(scan: &ScanResult, rules: &[Rule]) -> Vec<Finding> {
                 for (file, cpp) in &scan.cpp_map {
                     if let Some(fp) = &rule.match_rule.file_pattern {
                         if let Ok(pat) = Pattern::new(fp) {
-                            if !pat.matches(file) { continue; }
+                            if !pat.matches(file) {
+                                continue;
+                            }
                         }
                     }
 
                     match rule.match_rule.kind.as_str() {
                         "include" => {
                             for inc in &cpp.includes {
-                                if inc.path == rule.match_rule.pattern || inc.path.ends_with(&rule.match_rule.pattern) || inc.path.contains(&rule.match_rule.pattern) {
+                                if inc.path == rule.match_rule.pattern
+                                    || inc.path.ends_with(&rule.match_rule.pattern)
+                                    || inc.path.contains(&rule.match_rule.pattern)
+                                {
                                     findings.push(Finding {
                                         rule_id: rule.id.clone(),
-                                        severity: rule.severity.clone().unwrap_or_else(|| "warning".to_string()),
+                                        severity: rule
+                                            .severity
+                                            .clone()
+                                            .unwrap_or_else(|| "warning".to_string()),
                                         file: file.clone(),
                                         line: Some(inc.line),
                                         message: rule.output.message.clone(),
@@ -41,7 +49,10 @@ pub fn apply_rules(scan: &ScanResult, rules: &[Rule]) -> Vec<Finding> {
                                     if re.is_match(text) {
                                         findings.push(Finding {
                                             rule_id: rule.id.clone(),
-                                            severity: rule.severity.clone().unwrap_or_else(|| "warning".to_string()),
+                                            severity: rule
+                                                .severity
+                                                .clone()
+                                                .unwrap_or_else(|| "warning".to_string()),
                                             file: file.clone(),
                                             line: None,
                                             message: rule.output.message.clone(),
@@ -61,10 +72,15 @@ pub fn apply_rules(scan: &ScanResult, rules: &[Rule]) -> Vec<Finding> {
                     match rule.match_rule.kind.as_str() {
                         "dependency" => {
                             for d in &pkg.dependencies {
-                                if d.name == rule.match_rule.pattern || d.name.contains(&rule.match_rule.pattern) {
+                                if d.name == rule.match_rule.pattern
+                                    || d.name.contains(&rule.match_rule.pattern)
+                                {
                                     findings.push(Finding {
                                         rule_id: rule.id.clone(),
-                                        severity: rule.severity.clone().unwrap_or_else(|| "warning".to_string()),
+                                        severity: rule
+                                            .severity
+                                            .clone()
+                                            .unwrap_or_else(|| "warning".to_string()),
                                         file: format!("{}/package.xml", pkg.path),
                                         line: None,
                                         message: rule.output.message.clone(),
@@ -79,7 +95,10 @@ pub fn apply_rules(scan: &ScanResult, rules: &[Rule]) -> Vec<Finding> {
                                 if bt == &rule.match_rule.pattern {
                                     findings.push(Finding {
                                         rule_id: rule.id.clone(),
-                                        severity: rule.severity.clone().unwrap_or_else(|| "warning".to_string()),
+                                        severity: rule
+                                            .severity
+                                            .clone()
+                                            .unwrap_or_else(|| "warning".to_string()),
                                         file: format!("{}/package.xml", pkg.path),
                                         line: None,
                                         message: rule.output.message.clone(),

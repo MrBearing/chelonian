@@ -1,9 +1,9 @@
-pub mod package;
 pub mod cmake;
 pub mod cpp;
+pub mod package;
 pub mod report;
 
-pub use package::Package;
 pub use cmake::CMakeInfo;
 pub use cpp::CppAnalysis;
-pub use report::{Finding, AnalysisReport};
+pub use package::Package;
+pub use report::{AnalysisReport, Finding};

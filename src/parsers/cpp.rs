@@ -14,7 +14,10 @@ pub fn parse_cpp_file(path: &str) -> Result<CppAnalysis> {
     for (i, line) in text.lines().enumerate() {
         if let Some(cap) = re.captures(line) {
             if let Some(m) = cap.get(1) {
-                analysis.includes.push(Include { path: m.as_str().to_string(), line: i + 1 });
+                analysis.includes.push(Include {
+                    path: m.as_str().to_string(),
+                    line: i + 1,
+                });
             }
         }
     }

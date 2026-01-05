@@ -1,7 +1,7 @@
-use crate::scanner::ScanResult;
 use crate::models::{AnalysisReport, Finding};
-use crate::plugins::rule::Rule;
 use crate::plugins::engine;
+use crate::plugins::rule::Rule;
+use crate::scanner::ScanResult;
 use std::collections::HashMap;
 
 pub fn analyze(scan: &ScanResult, rules: &[Rule]) -> AnalysisReport {

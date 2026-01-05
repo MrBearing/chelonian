@@ -29,14 +29,25 @@ impl Package {
     }
 
     pub fn is_ros1(&self) -> bool {
-        let ros1_indicators = ["roscpp", "rospy", "message_generation", "message_runtime", "catkin"];
+        let ros1_indicators = [
+            "roscpp",
+            "rospy",
+            "message_generation",
+            "message_runtime",
+            "catkin",
+        ];
         self.all_dependency_names()
             .iter()
             .any(|d| ros1_indicators.contains(&d.as_str()))
     }
 
     pub fn is_ros2(&self) -> bool {
-        let ros2_indicators = ["rclcpp", "rclpy", "rosidl_default_generators", "ament_cmake"];
+        let ros2_indicators = [
+            "rclcpp",
+            "rclpy",
+            "rosidl_default_generators",
+            "ament_cmake",
+        ];
         self.all_dependency_names()
             .iter()
             .any(|d| ros2_indicators.contains(&d.as_str()))
