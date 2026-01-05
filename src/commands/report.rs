@@ -614,6 +614,7 @@ fn render_html(report: &AnalysisReport) -> String {
 
     out.push_str("<h2>Findings</h2>\n");
     out.push_str("<table border=\"1\" cellspacing=\"0\" cellpadding=\"6\">\n");
+    out.push_str("<caption>Findings list</caption>\n");
     out.push_str("<thead><tr><th>Severity</th><th>Rule</th><th>File</th><th>Line</th><th>Message</th><th>Suggestion</th></tr></thead>\n");
     out.push_str("<tbody>\n");
 
