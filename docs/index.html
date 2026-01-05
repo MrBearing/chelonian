@@ -91,9 +91,11 @@
     }
 
     .icon {
-      width: 16px;
-      height: 16px;
-      flex: 0 0 16px;
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      display: block;
+      aspect-ratio: 1 / 1;
       opacity: 0.85;
     }
 
@@ -107,6 +109,66 @@
       outline: 2px solid currentColor;
       outline-offset: 2px;
       border-radius: 6px;
+    }
+
+    .github-dogear {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 120px;
+      height: 120px;
+      z-index: 10;
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .github-dogear::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-top: 120px solid rgba(127, 127, 127, 0.25);
+      border-left: 120px solid transparent;
+    }
+
+    .github-dogear::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-top: 106px solid rgba(127, 127, 127, 0.18);
+      border-left: 106px solid transparent;
+      transform: translate(-4px, 4px);
+    }
+
+    .github-dogear span {
+      position: absolute;
+      top: 34px;
+      right: -10px;
+      transform: rotate(45deg);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.95;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: rgba(127, 127, 127, 0.10);
+      border: 1px solid rgba(127, 127, 127, 0.25);
+    }
+
+    .github-dogear:hover span {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .github-dogear:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 4px;
+      border-radius: 10px;
     }
 
     pre {
@@ -195,15 +257,19 @@ kelo run /path/to/ros/workspace -p ros1 -o results/
           <li>
             <a href="https://github.com/MrBearing/chelonian">
               <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path fill="currentColor" d="M3 4.5a2.5 2.5 0 0 1 2.5-2.5h13A2.5 2.5 0 0 1 21 4.5v15a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 19.5v-15Zm2.5-.5a.5.5 0 0 0-.5.5v15a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-15a.5.5 0 0 0-.5-.5h-13Zm2.4 5.2a1 1 0 0 1 1.4-1.4l2.7 2.7 2.7-2.7a1 1 0 1 1 1.4 1.4l-2.7 2.7 2.7 2.7a1 1 0 1 1-1.4 1.4l-2.7-2.7-2.7 2.7a1 1 0 1 1-1.4-1.4l2.7-2.7-2.7-2.7Z"/>
+                <path d="M8 7 3 12l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 5 10 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
               GitHub repository
             </a>
           </li>
           <li>
             <a href="https://crates.io/crates/chelonian">
-              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <path fill="currentColor" d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2Zm0 2.2 6.7 3.3L12 10.8 5.3 7.5 12 4.2Zm-7 5.2 6 3v7.9l-6-3V9.4Zm8 10.9V12.4l6-3v7.9l-6 3Z"/>
+              <svg class="icon" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M3.27 6.96 12 12.01l8.73-5.05" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                <path d="M12 22.08V12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
               crates.io
             </a>
