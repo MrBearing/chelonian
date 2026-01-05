@@ -57,6 +57,7 @@ fn run_subcommand_generates_report_bundle() {
 
     assert!(out_dir.join("index.html").exists(), "index.html missing");
     assert!(out_dir.join("assets").join("app.js").exists(), "assets/app.js missing");
+    assert!(out_dir.join("assets").join("style.css").exists(), "assets/style.css missing");
 }
 
 #[test]
@@ -86,5 +87,6 @@ fn run_shorthand_generates_report_bundle() {
     );
 
     assert!(out_dir.join("index.html").exists(), "index.html missing");
+    assert!(out_dir.join("assets").join("app.js").exists(), "assets/app.js missing");
     assert!(out_dir.join("assets").join("style.css").exists(), "assets/style.css missing");
 }
