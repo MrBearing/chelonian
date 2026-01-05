@@ -10,7 +10,7 @@ fn write_min_workspace(base: &std::path::Path) {
 
     write(
         pkg_dir.join("package.xml"),
-        r#"<package format=\"2\"><name>my_pkg</name><version>0.1.0</version><depend>roscpp</depend></package>"#,
+        r#"<package format="2"><name>my_pkg</name><version>0.1.0</version><depend>roscpp</depend></package>"#,
     )
     .expect("write package.xml");
 
