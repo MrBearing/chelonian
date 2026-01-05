@@ -3,15 +3,220 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chelonian Sample Reports</title>
+  <meta name="description" content="Chelonian is a CLI static analysis tool for ROS workspaces. View sample reports and download analysis.json outputs." />
+  <title>Chelonian — ROS Workspace Static Analysis</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      line-height: 1.5;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+
+    header {
+      padding: 24px 0 12px;
+      border-bottom: 1px solid rgba(127, 127, 127, 0.25);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      margin: 0;
+      opacity: 0.8;
+      max-width: 70ch;
+    }
+
+    main {
+      padding-top: 18px;
+    }
+
+    section {
+      margin-top: 22px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid rgba(127, 127, 127, 0.25);
+      border-radius: 10px;
+      padding: 14px 14px 12px;
+      background: rgba(127, 127, 127, 0.06);
+    }
+
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+
+    .card p {
+      margin: 0 0 10px;
+      opacity: 0.85;
+    }
+
+    .links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .links a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+      opacity: 0.85;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    a:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+      border-radius: 6px;
+    }
+
+    pre {
+      margin: 10px 0 0;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(127, 127, 127, 0.25);
+      background: rgba(0, 0, 0, 0.06);
+      overflow: auto;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.95em;
+    }
+
+    footer {
+      margin-top: 34px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(127, 127, 127, 0.25);
+      opacity: 0.8;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Chelonian Sample Reports</h1>
-  <ul>
-    <li><a href="./ros1/">ROS1 sample report</a></li>
-    <li><a href="./ros1/analysis.json">ROS1 analysis.json</a></li>
-    <li><a href="./ros2/">ROS2 sample report</a></li>
-    <li><a href="./ros2/analysis.json">ROS2 analysis.json</a></li>
-  </ul>
+  <div class="wrap">
+    <header>
+      <h1>Chelonian</h1>
+      <p class="subtitle">
+        A CLI static analysis tool for ROS workspaces. It scans packages, evaluates rule-based findings, and can generate a
+        static HTML report you can publish anywhere.
+      </p>
+    </header>
+
+    <main>
+      <section aria-labelledby="install-title">
+        <h2 id="install-title">Install</h2>
+        <p>Install the CLI via Cargo (the binary name is <code>kelo</code>):</p>
+        <pre><code>cargo install chelonian
+</code></pre>
+        <p>If you are building from a local checkout:</p>
+        <pre><code>cargo install --path . --locked
+</code></pre>
+      </section>
+      <section aria-labelledby="how-title">
+        <h2 id="how-title">How it works</h2>
+        <p>
+          Chelonian runs as <code>kelo</code>. Typical usage is: analyze a workspace to JSON, then render the report.
+          (Some setups also provide a one-shot command that performs both steps.)
+        </p>
+        <pre><code>kelo analyze -p ros1 -f json -o analysis.json /path/to/ros/workspace
+kelo report analysis.json -o results/
+
+# one-shot (analyze + report)
+kelo run /path/to/ros/workspace -p ros1 -o results/
+</code></pre>
+      </section>
+      <section aria-labelledby="samples-title">
+        <h2 id="samples-title">Sample reports</h2>
+        <div class="grid">
+          <div class="card">
+            <h3>ROS1</h3>
+            <p>Sample static report and the corresponding machine-readable analysis JSON.</p>
+            <ul class="links">
+              <li><a href="./ros1/">Open report</a></li>
+              <li><a href="./ros1/analysis.json">Download analysis.json</a></li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>ROS2</h3>
+            <p>Sample static report and the corresponding machine-readable analysis JSON.</p>
+            <ul class="links">
+              <li><a href="./ros2/">Open report</a></li>
+              <li><a href="./ros2/analysis.json">Download analysis.json</a></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+
+
+      <section aria-labelledby="links-title">
+        <h2 id="links-title">Project links</h2>
+        <ul class="links">
+          <li>
+            <a href="https://github.com/MrBearing/chelonian">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M3 4.5a2.5 2.5 0 0 1 2.5-2.5h13A2.5 2.5 0 0 1 21 4.5v15a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 19.5v-15Zm2.5-.5a.5.5 0 0 0-.5.5v15a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-15a.5.5 0 0 0-.5-.5h-13Zm2.4 5.2a1 1 0 0 1 1.4-1.4l2.7 2.7 2.7-2.7a1 1 0 1 1 1.4 1.4l-2.7 2.7 2.7 2.7a1 1 0 1 1-1.4 1.4l-2.7-2.7-2.7 2.7a1 1 0 1 1-1.4-1.4l2.7-2.7-2.7-2.7Z"/>
+              </svg>
+              GitHub repository
+            </a>
+          </li>
+          <li>
+            <a href="https://crates.io/crates/chelonian">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2Zm0 2.2 6.7 3.3L12 10.8 5.3 7.5 12 4.2Zm-7 5.2 6 3v7.9l-6-3V9.4Zm8 10.9V12.4l6-3v7.9l-6 3Z"/>
+              </svg>
+              crates.io
+            </a>
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <div>
+        These pages are generated from the repository’s CI workflow and published via GitHub Pages.
+      </div>
+    </footer>
+  </div>
 </body>
 </html>
